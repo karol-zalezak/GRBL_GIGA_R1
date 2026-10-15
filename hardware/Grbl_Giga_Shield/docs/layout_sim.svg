@@ -1,0 +1,375 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1124" height="978" viewBox="0 0 1124 978" font-family="Segoe UI, Arial, sans-serif">
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#dc2626" stroke-width="1" opacity="0.45"/></pattern></defs>
+<rect x="0.0" y="0.0" width="1124.0" height="978.0" rx="0.0" fill="#ffffff" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<text x="30.0" y="34.0" font-size="20.0" fill="#1f2937" text-anchor="start" font-weight="bold">Shield pre GIGA R1 — simulované rozloženie súčiastok (koncept v1, 14. 10. 2026)</text>
+<text x="30.0" y="58.0" font-size="12.5" fill="#6b7280" text-anchor="start" font-weight="normal">Pohľad spredu (od displeja), mierka v mm. Shield 210 × 80 mm, vpravo zarovno s displejom (USB strana), 104 mm presahuje doľava.</text>
+<text x="30.0" y="76.0" font-size="12.5" fill="#6b7280" text-anchor="start" font-weight="normal">Súčiastky shieldu sú na jeho zadnej strane — kreslené cez dosku. Polohy GIGA, displeja a ich konektorov sú z Altium a STEP súborov Arduina.</text>
+<rect x="54.0" y="96.0" width="840.0" height="320.0" rx="12.0" fill="#e8f0fb" stroke="#1e3a5f" stroke-width="2.00" opacity="1.00"/>
+<polygon points="54.0,96.0 468.0,96.0 468.0,146.0 54.0,146.0" fill="#efe4f8" stroke="#8b5cf6" stroke-width="1.20" stroke-dasharray="5,3" opacity="0.90"/>
+<polygon points="54.0,146.0 102.0,146.0 102.0,296.0 54.0,296.0" fill="#fde8d2" stroke="#d9822b" stroke-width="1.20" stroke-dasharray="5,3" opacity="0.90"/>
+<polygon points="54.0,296.0 482.0,296.0 482.0,338.0 524.0,338.0 524.0,354.4 798.0,354.4 798.0,322.0 526.0,322.0 526.0,192.0 894.0,192.0 894.0,416.0 54.0,416.0" fill="#fde8d2" stroke="#d9822b" stroke-width="1.20" stroke-dasharray="5,3" opacity="0.90"/>
+<rect x="470.0" y="96.0" width="424.0" height="320.0" rx="26.0" fill="none" stroke="#475569" stroke-width="1.60" stroke-dasharray="10,4" opacity="1.00"/>
+<rect x="485.8" y="145.5" width="392.4" height="233.0" rx="0.0" fill="none" stroke="#9ca3af" stroke-width="1.00" stroke-dasharray="2,3" opacity="1.00"/>
+<polygon points="893.4,138.9 503.2,138.9 497.1,145.0 497.1,190.7 487.0,200.9 487.0,332.0 497.1,342.1 497.1,352.3 893.4,352.3" fill="none" stroke="#0d9488" stroke-width="1.80" stroke-dasharray="7,3" opacity="1.00"/>
+<rect x="838.8" y="225.4" width="64.8" height="64.4" rx="0.0" fill="url(#hatch)" stroke="#dc2626" stroke-width="0.80" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="871.2" y="287.8" font-size="8.5" fill="#b91c1c" text-anchor="middle" font-weight="normal">USB-A</text>
+<rect x="867.3" y="172.5" width="30.0" height="43.6" rx="0.0" fill="none" stroke="#dc2626" stroke-width="0.80" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="882.3" y="214.1" font-size="8.5" fill="#b91c1c" text-anchor="middle" font-weight="normal">USB-C</text>
+<rect x="838.6" y="296.4" width="66.4" height="35.6" rx="0.0" fill="none" stroke="#dc2626" stroke-width="0.80" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="871.8" y="330.0" font-size="8.5" fill="#b91c1c" text-anchor="middle" font-weight="normal">jack</text>
+<rect x="871.0" y="138.8" width="20.8" height="17.0" rx="0.0" fill="none" stroke="#dc2626" stroke-width="0.80" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="881.4" y="153.8" font-size="8.5" fill="#b91c1c" text-anchor="middle" font-weight="normal">RESET</text>
+<rect x="871.0" y="335.4" width="20.8" height="17.0" rx="0.0" fill="none" stroke="#dc2626" stroke-width="0.80" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="881.4" y="350.4" font-size="8.5" fill="#b91c1c" text-anchor="middle" font-weight="normal">BOOT</text>
+<rect x="876.6" y="156.6" width="16.6" height="16.0" rx="0.0" fill="none" stroke="#dc2626" stroke-width="0.80" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="884.9" y="170.6" font-size="8.5" fill="#b91c1c" text-anchor="middle" font-weight="normal">U.FL</text>
+<rect x="622.9" y="223.7" width="22.6" height="33.2" rx="0.0" fill="url(#hatch)" stroke="#dc2626" stroke-width="0.80" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="634.2" y="254.9" font-size="8.5" fill="#b91c1c" text-anchor="middle" font-weight="normal">ICSP</text>
+<rect x="616.9" y="270.1" width="34.6" height="30.8" rx="0.0" fill="url(#hatch)" stroke="#dc2626" stroke-width="0.80" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="634.2" y="298.9" font-size="8.5" fill="#b91c1c" text-anchor="middle" font-weight="normal">SWD</text>
+<rect x="799.8" y="194.8" width="33.5" height="101.6" rx="0.0" fill="none" stroke="#dc2626" stroke-width="0.80" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="816.6" y="294.4" font-size="8.5" fill="#b91c1c" text-anchor="middle" font-weight="normal">J6</text>
+<rect x="549.9" y="184.5" width="33.4" height="121.9" rx="0.0" fill="none" stroke="#dc2626" stroke-width="0.80" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="566.6" y="304.4" font-size="8.5" fill="#b91c1c" text-anchor="middle" font-weight="normal">J5</text>
+<rect x="753.7" y="224.3" width="40.9" height="32.4" rx="0.0" fill="none" stroke="#dc2626" stroke-width="0.80" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="774.2" y="254.7" font-size="8.5" fill="#b91c1c" text-anchor="middle" font-weight="normal">U8</text>
+<circle cx="832.4" cy="149.1" r="6.4" fill="none" stroke="#0d9488" stroke-width="0.80"/>
+<circle cx="532.7" cy="149.1" r="6.4" fill="none" stroke="#0d9488" stroke-width="0.80"/>
+<circle cx="837.4" cy="342.1" r="6.4" fill="none" stroke="#0d9488" stroke-width="0.80"/>
+<circle cx="507.3" cy="342.1" r="6.4" fill="none" stroke="#0d9488" stroke-width="0.80"/>
+<circle cx="629.1" cy="321.7" r="6.4" fill="none" stroke="#0d9488" stroke-width="0.80"/>
+<circle cx="629.2" cy="210.0" r="6.4" fill="none" stroke="#0d9488" stroke-width="0.80"/>
+<rect x="815.1" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="804.9" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="794.8" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="784.6" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="774.4" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="764.3" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="754.1" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="744.0" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="733.8" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="723.6" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="707.4" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="697.2" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="687.1" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="676.9" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="666.7" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="656.6" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="646.4" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="636.3" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="615.9" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="605.8" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="595.6" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="585.5" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="575.3" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="565.1" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="555.0" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="544.8" y="146.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="778.5" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="768.3" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="758.2" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="748.0" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="737.9" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="727.7" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="717.5" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="707.4" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="687.1" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="676.9" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="666.7" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="656.6" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="646.4" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="636.3" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="626.1" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="615.9" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="595.6" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="585.5" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="575.3" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="565.1" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="555.0" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="544.8" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="534.7" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="524.5" y="339.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="146.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="156.2" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="166.4" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="176.6" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="186.7" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="196.9" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="207.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="217.2" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="227.4" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="237.5" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="247.7" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="257.8" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="268.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="278.2" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="288.3" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="298.5" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="308.6" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="514.4" y="318.8" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="146.1" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="156.2" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="166.4" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="176.6" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="186.7" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="196.9" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="207.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="217.2" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="227.4" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="237.5" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="247.7" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="257.8" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="268.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="278.2" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="288.3" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="298.5" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="308.6" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="504.3" y="318.8" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<rect x="66.0" y="100.0" width="90.8" height="36.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="111.4" y="117.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">SERVO X</text>
+<text x="111.4" y="129.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">2×6</text>
+<rect x="164.4" y="100.0" width="90.8" height="36.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="209.8" y="117.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">SERVO Y</text>
+<text x="209.8" y="129.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">2×6</text>
+<rect x="262.8" y="100.0" width="90.8" height="36.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="308.2" y="117.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">SERVO Z</text>
+<text x="308.2" y="129.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">2×6</text>
+<rect x="361.2" y="100.0" width="90.8" height="36.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="406.6" y="117.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">SERVO A</text>
+<text x="406.6" y="129.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">2×6</text>
+<rect x="118.0" y="150.0" width="72.0" height="26.0" rx="3.0" fill="#0f766e" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="154.0" y="162.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">OPTO ALM</text>
+<text x="154.0" y="174.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">IN9–IN12</text>
+<rect x="222.0" y="150.0" width="44.0" height="26.0" rx="3.0" fill="#c2410c" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="244.0" y="162.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">SON 24 V</text>
+<text x="244.0" y="174.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">výstup</text>
+<rect x="284.0" y="150.0" width="54.0" height="28.0" rx="3.0" fill="#1d4ed8" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="311.0" y="163.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">AM26C31</text>
+<text x="311.0" y="175.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">STEP</text>
+<rect x="344.0" y="150.0" width="54.0" height="28.0" rx="3.0" fill="#1d4ed8" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="371.0" y="163.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">AM26C31</text>
+<text x="371.0" y="175.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">DIR</text>
+<rect x="404.0" y="150.0" width="54.0" height="28.0" rx="3.0" fill="#1d4ed8" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="431.0" y="163.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">AM26C31</text>
+<text x="431.0" y="175.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">ENABLE</text>
+<rect x="54.0" y="180.0" width="34.0" height="30.5" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="71.0" y="199.2" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="bold">STOP</text>
+<rect x="54.0" y="216.0" width="34.0" height="30.5" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="71.0" y="230.2" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">DRV</text>
+<text x="71.0" y="242.2" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">PWR</text>
+<rect x="94.0" y="182.0" width="26.0" height="26.4" rx="3.0" fill="#0f766e" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="107.0" y="199.2" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="bold">S</text>
+<rect x="94.0" y="218.0" width="26.0" height="26.4" rx="3.0" fill="#0f766e" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="107.0" y="235.2" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="bold">P</text>
+<rect x="126.0" y="264.0" width="60.0" height="60.0" rx="3.0" fill="#0f766e" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="156.0" y="293.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">IN1–IN4</text>
+<text x="156.0" y="305.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">koncáky X, Y</text>
+<rect x="194.0" y="264.0" width="60.0" height="60.0" rx="3.0" fill="#0f766e" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="224.0" y="293.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">IN5–IN8</text>
+<text x="224.0" y="305.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">koncáky Z, A</text>
+<rect x="262.0" y="264.0" width="60.0" height="60.0" rx="3.0" fill="#0f766e" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="292.0" y="293.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">IN13–16</text>
+<text x="292.0" y="305.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">sonda, tlačidlá</text>
+<rect x="330.0" y="264.0" width="60.0" height="60.0" rx="3.0" fill="#0f766e" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="360.0" y="293.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">IN17–20</text>
+<text x="360.0" y="305.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">dvere, menič</text>
+<rect x="394.0" y="220.0" width="81.2" height="127.2" rx="3.0" fill="#b91c1c" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="434.6" y="282.6" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">DC/DC 24→5 V</text>
+<text x="434.6" y="294.6" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">izolovaný 2 A</text>
+<rect x="62.0" y="376.0" width="91.4" height="40.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="107.7" y="395.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">IN1–IN4</text>
+<text x="107.7" y="407.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">+24V, 0V · 6×3,81</text>
+<rect x="159.4" y="376.0" width="91.4" height="40.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="205.2" y="395.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">IN5–IN8</text>
+<text x="205.2" y="407.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">+24V, 0V · 6×3,81</text>
+<rect x="256.9" y="376.0" width="91.4" height="40.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="302.6" y="395.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">IN13–IN16</text>
+<text x="302.6" y="407.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">+24V, 0V · 6×3,81</text>
+<rect x="354.3" y="376.0" width="91.4" height="40.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="400.0" y="395.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">IN17–IN20</text>
+<text x="400.0" y="407.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">+24V, 0V · 6×3,81</text>
+<rect x="510.0" y="100.0" width="108.0" height="36.0" rx="3.0" fill="#7c3aed" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="564.0" y="117.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">EXT / MPG</text>
+<text x="564.0" y="129.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">2×8, voliteľné</text>
+<rect x="631.2" y="100.8" width="101.6" height="33.6" rx="3.0" fill="#7c3aed" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="682.0" y="121.6" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold"></text>
+<rect x="740.0" y="102.0" width="60.0" height="32.0" rx="3.0" fill="#7c3aed" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="770.0" y="117.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">EXT vstupy</text>
+<text x="770.0" y="129.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">ESD, AM26C32</text>
+<rect x="814.0" y="102.0" width="36.0" height="32.0" rx="3.0" fill="#15803d" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="832.0" y="122.0" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="bold">RESET</text>
+<rect x="786.0" y="178.0" width="68.0" height="28.0" rx="3.0" fill="#0f766e" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="820.0" y="191.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">OUT1–4</text>
+<text x="820.0" y="203.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">opto</text>
+<rect x="702.0" y="178.0" width="68.0" height="28.0" rx="3.0" fill="#0f766e" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="736.0" y="191.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">OUT5–8</text>
+<text x="736.0" y="203.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">opto</text>
+<rect x="618.0" y="178.0" width="68.0" height="28.0" rx="3.0" fill="#0f766e" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="652.0" y="191.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">OUT9–12</text>
+<text x="652.0" y="203.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">opto</text>
+<rect x="534.0" y="178.0" width="68.0" height="28.0" rx="3.0" fill="#0f766e" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="568.0" y="191.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">BRAKE</text>
+<text x="568.0" y="203.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">opto</text>
+<rect x="710.0" y="218.0" width="48.0" height="42.0" rx="3.0" fill="#c2410c" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="734.0" y="238.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">TBD62083</text>
+<text x="734.0" y="250.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">OUT1–8</text>
+<rect x="642.0" y="218.0" width="48.0" height="42.0" rx="3.0" fill="#c2410c" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="666.0" y="238.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">TBD62083</text>
+<text x="666.0" y="250.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">OUT9–12</text>
+<rect x="538.0" y="216.0" width="68.0" height="48.0" rx="3.0" fill="#b91c1c" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="572.0" y="239.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">BRAKE 5 A</text>
+<text x="572.0" y="251.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">MOSFET, dióda</text>
+<rect x="690.0" y="276.0" width="152.4" height="32.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="766.2" y="291.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">OUT1–OUT8</text>
+<text x="766.2" y="303.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">+24V ×2 · vertikálne</text>
+<rect x="590.0" y="276.0" width="91.4" height="32.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="635.7" y="291.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">OUT9–12</text>
+<text x="635.7" y="303.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">+24V, 0V</text>
+<rect x="534.0" y="276.0" width="40.6" height="32.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="554.3" y="291.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">BRAKE</text>
+<text x="554.3" y="303.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">5,08</text>
+<rect x="534.0" y="348.0" width="60.0" height="28.0" rx="3.0" fill="#c2410c" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="564.0" y="361.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">0–10 V</text>
+<text x="564.0" y="373.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">AMC1311+OPA</text>
+<rect x="542.0" y="380.0" width="30.5" height="36.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="557.2" y="402.0" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="bold">0–10V</text>
+<rect x="590.0" y="376.0" width="40.6" height="40.0" rx="3.0" fill="#374151" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="610.3" y="395.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">24V IN</text>
+<text x="610.3" y="407.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">5,08</text>
+<rect x="640.0" y="364.0" width="84.0" height="44.0" rx="3.0" fill="#b91c1c" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="682.0" y="385.0" font-size="11.0" fill="#ffffff" text-anchor="middle" font-weight="bold">ochrana 24 V</text>
+<text x="682.0" y="397.0" font-size="9.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">PTC, TVS, P-FET</text>
+<rect x="734.0" y="370.0" width="52.0" height="32.0" rx="3.0" fill="#15803d" stroke="#ffffff" stroke-width="1.00" opacity="0.93"/>
+<text x="760.0" y="385.0" font-size="10.0" fill="#ffffff" text-anchor="middle" font-weight="bold">LED</text>
+<text x="760.0" y="397.0" font-size="8.5" fill="#e5e7eb" text-anchor="middle" font-weight="normal">24 V, 5 V</text>
+<circle cx="727.7" cy="108.9" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="727.7" cy="119.1" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="717.6" cy="108.9" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="717.6" cy="119.1" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="707.4" cy="108.9" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="707.4" cy="119.1" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="697.2" cy="108.9" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="697.2" cy="119.1" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="687.1" cy="108.9" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="687.1" cy="119.1" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="676.9" cy="108.9" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="676.9" cy="119.1" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="666.8" cy="108.9" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="666.8" cy="119.1" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="656.6" cy="108.9" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="656.6" cy="119.1" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="646.4" cy="108.9" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="646.4" cy="119.1" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="636.3" cy="108.9" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="636.3" cy="119.1" r="2.2" fill="#ffffff" stroke="none" stroke-width="1.00"/>
+<circle cx="490.0" cy="116.0" r="6.4" fill="#ffffff" stroke="#1f2937" stroke-width="1.40"/>
+<circle cx="490.0" cy="116.0" r="11.0" fill="none" stroke="#1f2937" stroke-width="0.60"/>
+<circle cx="874.0" cy="116.0" r="6.4" fill="#ffffff" stroke="#1f2937" stroke-width="1.40"/>
+<circle cx="874.0" cy="116.0" r="11.0" fill="none" stroke="#1f2937" stroke-width="0.60"/>
+<circle cx="490.0" cy="396.0" r="6.4" fill="#ffffff" stroke="#1f2937" stroke-width="1.40"/>
+<circle cx="490.0" cy="396.0" r="11.0" fill="none" stroke="#1f2937" stroke-width="0.60"/>
+<circle cx="874.0" cy="396.0" r="6.4" fill="#ffffff" stroke="#1f2937" stroke-width="1.40"/>
+<circle cx="874.0" cy="396.0" r="11.0" fill="none" stroke="#1f2937" stroke-width="0.60"/>
+<rect x="903.6" y="234.9" width="181.8" height="45.2" rx="4.0" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.00" opacity="1.00"/>
+<text x="994.5" y="261.5" font-size="10.5" fill="#6b7280" text-anchor="middle" font-weight="normal">USB kľúč</text>
+<rect x="897.3" y="181.3" width="116.1" height="26.0" rx="6.0" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.00" opacity="1.00"/>
+<text x="955.3" y="198.3" font-size="10.0" fill="#6b7280" text-anchor="middle" font-weight="normal">USB-C k PC</text>
+<text x="682.0" y="86.0" font-size="10.5" fill="#7c3aed" text-anchor="middle" font-weight="bold">J3 na displeji: D54–D67 (dlhé piny)</text>
+<text x="884.0" y="347.2" font-size="10.0" fill="#0d9488" text-anchor="end" font-weight="bold">GIGA R1</text>
+<line x1="54.0" y1="446.0" x2="894.0" y2="446.0" stroke="#6b7280" stroke-width="1.00"/>
+<line x1="54.0" y1="440.0" x2="54.0" y2="452.0" stroke="#6b7280" stroke-width="1.00"/>
+<line x1="470.0" y1="440.0" x2="470.0" y2="452.0" stroke="#6b7280" stroke-width="1.00"/>
+<line x1="894.0" y1="440.0" x2="894.0" y2="452.0" stroke="#6b7280" stroke-width="1.00"/>
+<text x="262.0" y="442.0" font-size="11.0" fill="#6b7280" text-anchor="middle" font-weight="normal">104 mm (presah doľava)</text>
+<text x="682.0" y="442.0" font-size="11.0" fill="#6b7280" text-anchor="middle" font-weight="normal">106 mm = šírka displeja</text>
+<line x1="40.0" y1="96.0" x2="40.0" y2="416.0" stroke="#6b7280" stroke-width="1.00"/>
+<text x="36.0" y="256.0" font-size="11.0" fill="#6b7280" text-anchor="end" font-weight="normal">80</text>
+<text x="30.0" y="470.0" font-size="14.0" fill="#1f2937" text-anchor="start" font-weight="bold">Bočný rez (pohľad zdola, x ako hore, z = smer od displeja dozadu)</text>
+<line x1="46.0" y1="508.0" x2="46.0" y2="740.0" stroke="#9ca3af" stroke-width="1.00"/>
+<text x="54.0" y="514.0" font-size="10.0" fill="#6b7280" text-anchor="start" font-weight="normal">↑ spredu (displej)</text>
+<text x="54.0" y="742.0" font-size="10.0" fill="#6b7280" text-anchor="start" font-weight="normal">↓ dozadu (svorky)</text>
+<rect x="485.8" y="520.0" width="392.4" height="8.0" rx="0.0" fill="#9ca3af" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<text x="682.0" y="527.5" font-size="9.0" fill="#ffffff" text-anchor="middle" font-weight="normal">sklo TFT</text>
+<rect x="470.0" y="541.6" width="424.0" height="6.4" rx="0.0" fill="#475569" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<rect x="631.2" y="548.2" width="101.6" height="14.6" rx="0.0" fill="#7c3aed" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<text x="682.0" y="559.0" font-size="8.5" fill="#ffffff" text-anchor="middle" font-weight="normal">J3</text>
+<rect x="803.0" y="548.0" width="20.0" height="15.3" rx="0.0" fill="#64748b" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<line x1="807.9" y1="548.0" x2="807.9" y2="619.8" stroke="#64748b" stroke-width="1.20"/>
+<line x1="818.0" y1="548.0" x2="818.0" y2="619.8" stroke="#64748b" stroke-width="1.20"/>
+<rect x="553.1" y="548.0" width="20.0" height="15.3" rx="0.0" fill="#64748b" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<line x1="558.0" y1="548.0" x2="558.0" y2="619.8" stroke="#64748b" stroke-width="1.20"/>
+<line x1="568.2" y1="548.0" x2="568.2" y2="619.8" stroke="#64748b" stroke-width="1.20"/>
+<rect x="487.0" y="598.2" width="406.4" height="6.7" rx="0.0" fill="#0d9488" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<text x="690.2" y="605.1" font-size="8.5" fill="#ffffff" text-anchor="middle" font-weight="normal">GIGA R1</text>
+<rect x="838.8" y="589.3" width="64.8" height="46.7" rx="0.0" fill="#9ca3af" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<text x="871.2" y="616.2" font-size="8.5" fill="#ffffff" text-anchor="middle" font-weight="normal">USB-A</text>
+<rect x="903.6" y="600.9" width="149.8" height="30.0" rx="0.0" fill="#e5e7eb" stroke="#6b7280" stroke-width="0.80" opacity="1.00"/>
+<text x="978.5" y="619.4" font-size="9.0" fill="#6b7280" text-anchor="middle" font-weight="normal">kľúč</text>
+<rect x="502.2" y="604.9" width="20.3" height="34.0" rx="0.0" fill="#d6c7a1" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<rect x="542.7" y="604.9" width="280.4" height="34.0" rx="0.0" fill="#d6c7a1" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<rect x="622.9" y="604.9" width="22.6" height="34.4" rx="0.0" fill="#dc2626" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<rect x="54.0" y="648.9" width="840.0" height="6.4" rx="0.0" fill="#1e3a5f" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<rect x="479.0" y="548.0" width="22.0" height="100.9" rx="0.0" fill="#cbd5e1" stroke="#6b7280" stroke-width="0.80" opacity="1.00"/>
+<rect x="863.0" y="548.0" width="22.0" height="100.9" rx="0.0" fill="#cbd5e1" stroke="#6b7280" stroke-width="0.80" opacity="1.00"/>
+<line x1="727.7" y1="554.0" x2="727.7" y2="665.3" stroke="#7c3aed" stroke-width="1.40"/>
+<line x1="697.2" y1="554.0" x2="697.2" y2="665.3" stroke="#7c3aed" stroke-width="1.40"/>
+<line x1="666.8" y1="554.0" x2="666.8" y2="665.3" stroke="#7c3aed" stroke-width="1.40"/>
+<line x1="636.3" y1="554.0" x2="636.3" y2="665.3" stroke="#7c3aed" stroke-width="1.40"/>
+<rect x="631.2" y="655.3" width="101.6" height="10.0" rx="0.0" fill="#7c3aed" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<rect x="66.0" y="655.3" width="393.2" height="36.0" rx="0.0" fill="#374151" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<text x="262.6" y="676.8" font-size="9.0" fill="#ffffff" text-anchor="middle" font-weight="normal">servo 2×6</text>
+<rect x="62.0" y="691.3" width="384.4" height="48.0" rx="0.0" fill="#374151" stroke="none" stroke-width="0.80" opacity="0.85"/>
+<text x="254.2" y="718.8" font-size="9.0" fill="#ffffff" text-anchor="middle" font-weight="normal">svorky vstupov (zástrčky)</text>
+<rect x="394.0" y="655.3" width="81.2" height="40.8" rx="0.0" fill="#b91c1c" stroke="none" stroke-width="0.80" opacity="1.00"/>
+<text x="434.6" y="679.2" font-size="8.5" fill="#ffffff" text-anchor="middle" font-weight="normal">DC/DC</text>
+<rect x="534.0" y="655.3" width="308.4" height="72.0" rx="0.0" fill="#374151" stroke="none" stroke-width="0.80" opacity="0.85"/>
+<text x="688.2" y="694.8" font-size="9.0" fill="#ffffff" text-anchor="middle" font-weight="normal">svorky výstupov, vertikálne (so zástrčkou)</text>
+<line x1="230.0" y1="548.0" x2="470.0" y2="548.0" stroke="#9ca3af" stroke-width="0.80" stroke-dasharray="3,3"/>
+<line x1="230.0" y1="598.2" x2="470.0" y2="598.2" stroke="#9ca3af" stroke-width="0.80" stroke-dasharray="3,3"/>
+<line x1="230.0" y1="604.9" x2="470.0" y2="604.9" stroke="#9ca3af" stroke-width="0.80" stroke-dasharray="3,3"/>
+<line x1="230.0" y1="648.9" x2="470.0" y2="648.9" stroke="#9ca3af" stroke-width="0.80" stroke-dasharray="3,3"/>
+<line x1="454.0" y1="548.0" x2="454.0" y2="598.2" stroke="#1f2937" stroke-width="1.00"/>
+<line x1="450.0" y1="548.0" x2="458.0" y2="548.0" stroke="#1f2937" stroke-width="1.00"/>
+<line x1="450.0" y1="598.2" x2="458.0" y2="598.2" stroke="#1f2937" stroke-width="1.00"/>
+<text x="448.0" y="577.1" font-size="10.0" fill="#1f2937" text-anchor="end" font-weight="normal">≈ 12,6 mm displej–GIGA (zo STEP, zmerať)</text>
+<line x1="454.0" y1="604.9" x2="454.0" y2="648.9" stroke="#1f2937" stroke-width="1.00"/>
+<line x1="450.0" y1="604.9" x2="458.0" y2="604.9" stroke="#1f2937" stroke-width="1.00"/>
+<line x1="450.0" y1="648.9" x2="458.0" y2="648.9" stroke="#1f2937" stroke-width="1.00"/>
+<text x="448.0" y="630.9" font-size="10.0" fill="#1f2937" text-anchor="end" font-weight="normal">11,0 mm GIGA–shield (8,5 + 2,5)</text>
+<line x1="222.0" y1="548.0" x2="222.0" y2="648.9" stroke="#1f2937" stroke-width="1.00"/>
+<line x1="218.0" y1="548.0" x2="226.0" y2="548.0" stroke="#1f2937" stroke-width="1.00"/>
+<line x1="218.0" y1="648.9" x2="226.0" y2="648.9" stroke="#1f2937" stroke-width="1.00"/>
+<text x="216.0" y="602.5" font-size="10.0" fill="#1f2937" text-anchor="end" font-weight="normal">stĺpiky M3 ≈ 25 mm</text>
+<text x="682.0" y="582.4" font-size="10.0" fill="#7c3aed" text-anchor="middle" font-weight="bold">kolíky do J3 ≈ 24 mm</text>
+<text x="634.0" y="649.7" font-size="9.0" fill="#b91c1c" text-anchor="middle" font-weight="normal">ICSP 8,6 mm</text>
+<rect x="30.0" y="762.0" width="26.0" height="16.0" rx="0.0" fill="#e8f0fb" stroke="#1e3a5f" stroke-width="1.00" stroke-dasharray="5,3" opacity="1.00"/>
+<text x="62.0" y="774.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">logika (GND GIGA, 3,3/5 V)</text>
+<rect x="330.0" y="762.0" width="26.0" height="16.0" rx="0.0" fill="#fde8d2" stroke="#d9822b" stroke-width="1.00" stroke-dasharray="5,3" opacity="1.00"/>
+<text x="362.0" y="774.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">izolovaná 24 V strana</text>
+<rect x="630.0" y="762.0" width="26.0" height="16.0" rx="0.0" fill="#efe4f8" stroke="#8b5cf6" stroke-width="1.00" stroke-dasharray="5,3" opacity="1.00"/>
+<text x="662.0" y="774.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">konektory serv: diferenčné + 24 V signály</text>
+<rect x="30.0" y="788.0" width="18.0" height="16.0" rx="2.0" fill="#374151" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<text x="54.0" y="800.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">konektory a svorky</text>
+<rect x="170.0" y="788.0" width="18.0" height="16.0" rx="2.0" fill="#0f766e" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<text x="194.0" y="800.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">optočleny</text>
+<rect x="310.0" y="788.0" width="18.0" height="16.0" rx="2.0" fill="#1d4ed8" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<text x="334.0" y="800.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">budiče AM26C31</text>
+<rect x="450.0" y="788.0" width="18.0" height="16.0" rx="2.0" fill="#c2410c" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<text x="474.0" y="800.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">výkonové výstupy</text>
+<rect x="590.0" y="788.0" width="18.0" height="16.0" rx="2.0" fill="#b91c1c" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<text x="614.0" y="800.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">napájanie, brzda</text>
+<rect x="730.0" y="788.0" width="18.0" height="16.0" rx="2.0" fill="#7c3aed" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<text x="754.0" y="800.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">rozšírenie J3 / EXT</text>
+<rect x="870.0" y="788.0" width="18.0" height="16.0" rx="2.0" fill="#15803d" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<text x="894.0" y="800.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">tlačidlo, LED</text>
+<rect x="30.0" y="809.0" width="18.0" height="14.0" rx="0.0" fill="url(#hatch)" stroke="#dc2626" stroke-width="1.00" stroke-dasharray="3,2" opacity="1.00"/>
+<text x="54.0" y="820.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">diel na GIGA pod shieldom vyšší ako 6 mm — spodná strana shieldu bez vývodov THT</text>
+<circle cx="590.0" cy="816.0" r="6.0" fill="#ffffff" stroke="#1f2937" stroke-width="1.40"/>
+<text x="602.0" y="820.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">otvor M3 v rohoch displeja — stĺpiky displej ↔ shield</text>
+<rect x="36.0" y="833.0" width="6.0" height="6.0" rx="0.0" fill="#111827" stroke="none" stroke-width="1.00" opacity="1.00"/>
+<text x="54.0" y="840.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">kolíky do GIGA: JDIGITAL hore (výstupy D2–D16), JANALOG dole (DAC0, 5 V), JSIDE 2×18 vľavo (kroky, vstupy)</text>
+<text x="30.0" y="870.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">1. GIGA na displeji (z konektorov J6/J7 v Altium súboroch): USB okraj 0,16 mm od pravého okraja displeja, horný okraj GIGA 10,73 mm pod horným okrajom displeja.</text>
+<text x="30.0" y="889.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">2. Medzera displej–GIGA ≈ 12,6 mm vychádza zo STEP modelu kolíkov (17,9 mm nad displejom); v dokumentácii nie je — treba zmerať. Od nej závisia stĺpiky aj kolíky do J3.</text>
+<text x="30.0" y="908.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">3. J3 (2×10) na displeji: 14 voľných GPIO D54–D67 + 3,3 V + GND. Piny 17/18 sú I2C4 = Wire1, zbernica dotyku a RGB diódy — na shielde nepripájať.</text>
+<text x="30.0" y="927.0" font-size="11.5" fill="#1f2937" text-anchor="start" font-weight="normal">4. Tlačidlá RESET a BOOT na GIGA zakryje shield: RESET je na shielde. Výstupy majú svorky zhora, aby 24 V nemuselo krížiť logické rady konektorov.</text>
+</svg>

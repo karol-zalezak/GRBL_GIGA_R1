@@ -1,0 +1,5 @@
+build/
+.nvcache/
+__pycache__/
+backup/
+docs/scope/*.npz
