@@ -2,6 +2,11 @@
 
 [English](README.md) · **Slovensky** · [Wiki](https://github.com/karol-zalezak/GRBL_GIGA_R1/wiki)
 
+<p align="center">
+  <img src="docs/photo_display.jpg" alt="GIGA Display Shield so stránkou DRO" width="49%">
+  <img src="docs/photo_board.jpg" alt="GIGA R1 na zadnej strane Display Shieldu" width="49%">
+</p>
+
 Port [Grbl 1.1h](https://github.com/gnea/grbl) na **Arduino GIGA R1 WiFi**
 (STM32H747, dve jadrá). Grbl beží na **Cortex-M7 s 480 MHz**; **GIGA Display
 Shield** (800×480) obsluhuje **koprocesor Cortex-M4** ako plnohodnotný displej
