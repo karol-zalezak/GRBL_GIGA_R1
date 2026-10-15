@@ -3,3 +3,4 @@ build/
 __pycache__/
 backup/
 docs/scope/*.npz
+wiki/
