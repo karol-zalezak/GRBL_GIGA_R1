@@ -70,6 +70,15 @@ krokom po anglicky aj po slovensky.
 
 ## Rýchly štart
 
+Priečinok sketchu sa musí volať `Grbl_Giga_R1`, rovnako ako súbor `.ino`
+v ňom (Arduino to vyžaduje), kým repozitár sa volá `GRBL_GIGA_R1`:
+
+```bash
+git clone https://github.com/karol-zalezak/GRBL_GIGA_R1.git Grbl_Giga_R1
+```
+
+(alebo premenuj priečinok rozbaleného ZIP). Potom:
+
 1. Nainštaluj jadro **Arduino Mbed OS GIGA Boards** (`arduino:mbed_giga`)
    cez Boards Manager v Arduino IDE, alebo:
 

@@ -71,6 +71,15 @@ step-by-step guides in English and Slovak.
 
 ## Quick start
 
+The sketch folder must be named `Grbl_Giga_R1`, like the `.ino` file in it
+(Arduino insists), while the repository is `GRBL_GIGA_R1`:
+
+```bash
+git clone https://github.com/karol-zalezak/GRBL_GIGA_R1.git Grbl_Giga_R1
+```
+
+(or rename the folder of the unpacked ZIP). Then:
+
 1. Install the **Arduino Mbed OS GIGA Boards** core (`arduino:mbed_giga`)
    with the Arduino IDE's Boards Manager, or:
 
