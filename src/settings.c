@@ -86,7 +86,15 @@ const __flash settings_t defaults = {\
     .drv_power_enable = DEFAULT_DRV_POWER_ENABLE,
     .mpg_mode = DEFAULT_MPG_MODE,
     .mpg_step = DEFAULT_MPG_STEP,
-    .mpg_max_feed = DEFAULT_MPG_MAX_FEED};
+    .mpg_max_feed = DEFAULT_MPG_MAX_FEED,
+    .vfd_type = DEFAULT_VFD_TYPE,
+    .vfd_address = DEFAULT_VFD_ADDRESS,
+    .vfd_format = DEFAULT_VFD_FORMAT,
+    .vfd_baud = DEFAULT_VFD_BAUD,
+    .vfd_max_hz = DEFAULT_VFD_MAX_HZ,
+    .spindle_pwm = DEFAULT_SPINDLE_PWM,
+    .panel_buttons = DEFAULT_PANEL_BUTTONS,
+    .pot_func = { DEFAULT_POT1_FUNC, DEFAULT_POT2_FUNC }};
 
 
 // The global (non-axis) settings in the order $$ prints them. The display's
@@ -99,7 +107,7 @@ uint8_t settings_is_float(uint8_t n)
 {
   if (n >= AXIS_SETTINGS_START_VAL) { return(true); }
   switch (n) {
-    case 11: case 12: case 24: case 25: case 27: case 30: case 31: case 97: case 98: return(true);
+    case 11: case 12: case 24: case 25: case 27: case 30: case 31: case 37: case 97: case 98: return(true);
   }
   return(false);
 }
@@ -149,6 +157,15 @@ float settings_value(uint8_t n)
       #else
         return 0;
       #endif
+    case 33: return settings.vfd_type;
+    case 34: return settings.vfd_address;
+    case 35: return settings.vfd_baud;
+    case 36: return settings.vfd_format;
+    case 37: return settings.vfd_max_hz;
+    case 38: return settings.spindle_pwm;
+    case 39: return settings.panel_buttons;
+    case 44: return settings.pot_func[0];
+    case 45: return settings.pot_func[1];
     case 40: return settings.kinematics;
     case 41: return settings.limits_head_space;
     case 42: return settings.a_mode;
@@ -295,6 +312,8 @@ uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data)
 // appended, padded as those structs were (to 4 bytes: they hold floats).
 #define SETTINGS_V21_SIZE  ((offsetof(settings_t, out_invert) + sizeof(uint16_t) + 3) & ~(size_t)3)
 #define SETTINGS_V22_SIZE  ((offsetof(settings_t, drv_power_enable) + sizeof(uint8_t) + 3) & ~(size_t)3)
+#define SETTINGS_V23_SIZE  ((offsetof(settings_t, mpg_max_feed) + sizeof(float) + 3) & ~(size_t)3)
+#define SETTINGS_V24_SIZE  ((offsetof(settings_t, vfd_max_hz) + sizeof(float) + 3) & ~(size_t)3)
 
 // Reads Grbl global settings struct from EEPROM.
 uint8_t read_global_settings() {
@@ -305,20 +324,35 @@ uint8_t read_global_settings() {
     if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL, sizeof(settings_t)))) {
       return(false);
     }
-  } else if ((version == 21) || (version == 22)) {
+  } else if ((version >= 21) && (version <= 24)) {
     // An older version: the same record without what later versions appended.
     // Keep it, give the new settings their defaults, store it as current.
-    if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL,
-                                           (version == 21) ? SETTINGS_V21_SIZE : SETTINGS_V22_SIZE))) {
+    static const uint16_t old_size[4] = { SETTINGS_V21_SIZE, SETTINGS_V22_SIZE, SETTINGS_V23_SIZE, SETTINGS_V24_SIZE };
+    size_t size = old_size[version - 21];
+    if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL, size))) {
       return(false);
     }
     if (version == 21) {
       settings.drv_power_delay_ms = DEFAULT_DRV_POWER_DELAY_MS;
       settings.drv_power_enable = DEFAULT_DRV_POWER_ENABLE;
     }
-    settings.mpg_mode = DEFAULT_MPG_MODE;
-    settings.mpg_step = DEFAULT_MPG_STEP;
-    settings.mpg_max_feed = DEFAULT_MPG_MAX_FEED;
+    if (version <= 22) {
+      settings.mpg_mode = DEFAULT_MPG_MODE;
+      settings.mpg_step = DEFAULT_MPG_STEP;
+      settings.mpg_max_feed = DEFAULT_MPG_MAX_FEED;
+    }
+    if (version <= 23) {
+      settings.vfd_type = DEFAULT_VFD_TYPE;
+      settings.vfd_address = DEFAULT_VFD_ADDRESS;
+      settings.vfd_format = DEFAULT_VFD_FORMAT;
+      settings.vfd_baud = DEFAULT_VFD_BAUD;
+      settings.vfd_max_hz = DEFAULT_VFD_MAX_HZ;
+    }
+    // Before 25 D6 always carried the PWM: a laser keeps it.
+    settings.spindle_pwm = bit_istrue(settings.flags,BITFLAG_LASER_MODE) ? 1 : DEFAULT_SPINDLE_PWM;
+    settings.panel_buttons = DEFAULT_PANEL_BUTTONS;
+    settings.pot_func[0] = DEFAULT_POT1_FUNC;
+    settings.pot_func[1] = DEFAULT_POT2_FUNC;
     write_global_settings();
   } else {
     return(false);
@@ -443,11 +477,69 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value) {
       case 31: settings.rpm_min = value; spindle_init(); break; // Re-initialize spindle rpm calibration
       case 32:
         #ifdef VARIABLE_SPINDLE
+          if (int_value && settings.vfd_type) { return(STATUS_SETTING_DISABLED); }   // a laser has no VFD
+          if (int_value && !settings.spindle_pwm) { return(STATUS_SETTING_DISABLED_LASER); }   // nor a laser without PWM ($38)
           if (int_value) { settings.flags |= BITFLAG_LASER_MODE; }
           else { settings.flags &= ~BITFLAG_LASER_MODE; }
         #else
           return(STATUS_SETTING_DISABLED_LASER);
         #endif
+        break;
+      case 33: case 34: case 35: case 36:
+        // Spindle VFD over RS485 (vfd.h). Not while the spindle runs, or may
+        // still run: the drive would be left running, or another one addressed.
+        if (outputs_get(OUTPUT_SPINDLE_FWD) || outputs_get(OUTPUT_SPINDLE_REV) || vfd_may_run()) {
+          return(STATUS_IDLE_ERROR);
+        }
+        switch (parameter) {
+          case 33:
+            if (ivalue >= VFD_N_TYPES) { return(STATUS_INVALID_STATEMENT); }
+            if (ivalue && bit_istrue(settings.flags,BITFLAG_LASER_MODE)) { return(STATUS_SETTING_DISABLED); }
+            settings.vfd_type = ivalue;
+            break;
+          case 34:
+            if ((ivalue < 1) || (ivalue > 247)) { return(STATUS_INVALID_STATEMENT); }
+            settings.vfd_address = ivalue;
+            break;
+          case 35:
+            if ((ivalue < 1200) || (ivalue > 115200)) { return(STATUS_INVALID_STATEMENT); }
+            settings.vfd_baud = ivalue;
+            break;
+          default:
+            if (ivalue >= HAL_RS485_FORMATS) { return(STATUS_INVALID_STATEMENT); }
+            settings.vfd_format = ivalue;
+            break;
+        }
+        vfd_init();
+        break;
+      case 37:
+        if ((value < 1.0f) || (value > VFD_MAX_HZ)) { return(STATUS_INVALID_STATEMENT); }
+        settings.vfd_max_hz = value;
+        break;
+      case 38: {
+        // PWM on OUT13. On: the timer takes D6, so no output function may be
+        // on OUT13. Off: the laser loses its power control.
+        if (ivalue > 2) { return(STATUS_INVALID_STATEMENT); }
+        if (!ivalue && bit_istrue(settings.flags,BITFLAG_LASER_MODE)) { return(STATUS_SETTING_DISABLED_LASER); }
+        if (ivalue) {
+          uint8_t f;
+          for (f = 0; f < N_OUT_FUNCS; f++) {
+            if (settings.out_func[f] == OUT_PWM_CHANNEL) { return(STATUS_CHANNEL_IN_USE); }
+          }
+        }
+        settings.spindle_pwm = ivalue;
+        spindle_init();
+        break;
+      }
+      case 39:
+        if (ivalue > 1) { return(STATUS_INVALID_STATEMENT); }
+        settings.panel_buttons = ivalue;
+        panel_init();
+        break;
+      case 44: case 45:
+        if (ivalue >= PANEL_N_POT_FUNCS) { return(STATUS_INVALID_STATEMENT); }
+        settings.pot_func[parameter - 44] = ivalue;
+        panel_init();
         break;
       case 40: // Kinematics: 0 = Cartesian, 1 = CoreXY
         if (int_value > KINEMATICS_COREXY) { return(STATUS_INVALID_STATEMENT); }

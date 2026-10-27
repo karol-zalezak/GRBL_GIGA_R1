@@ -10,26 +10,30 @@
 
   -------------------------------------------------------------------------------
 
-  The peripheral shield has twenty optocoupled inputs IN1-IN20 and twelve
-  transistor outputs OUT1-OUT12 (pins in cpu_map.h). None of them has a fixed
+  The peripheral shield has twenty optocoupled inputs IN1-IN20 and fourteen
+  transistor outputs OUT1-OUT14 (pins in cpu_map.h). None of them has a fixed
   job: every input function and every output function is a setting holding
-  the number of the channel that carries it, 0 for "not used".
+  the number of the channel that carries it, 0 for "not used". The defaults
+  (right) are those of shield v4:
 
       $60-$67  limit X-, X+, Y-, Y+, Z-, Z+, A-, A+         IN1-IN8
-      $68-$71  servo alarm X, Y, Z, A                       IN9-IN12
-      $72      probe                                        IN13
-      $73-$76  reset, feed hold, cycle start, safety door   IN14-IN17
-      $77      spindle at speed                             IN18
-      $78      spindle fault                                IN19
+      $68-$71  servo alarm X, Y, Z, A                       IN17-IN20
+      $72      probe                                        IN9
+      $73-$76  reset, feed hold, cycle start, safety door   IN13, IN14, IN15, IN10
+      $77      spindle at speed                             IN11
+      $78      spindle fault                                IN12
       $79      NC mask: bit n-1 = INn, bit 20 = STOP, bit 21 = DRV PWR
 
       $80-$81  spindle FWD, spindle REV                     OUT1-OUT2
       $82-$83  flood (M8), mist (M7)                        OUT3-OUT4
-      $84-$89  AUX0-AUX5 (M62-M65 P0-P5)                    OUT5-OUT8, OUT12, -
+      $84-$89  AUX0-AUX5 (M62-M65 P0-P5)                    OUT5-OUT8, OUT12, OUT14
       $90      collet open                                  OUT9
       $91      servo alarm reset (pulse)                    OUT10
       $92      VFD fault reset (pulse)                      OUT11
       $93      inverted outputs: bit n-1 = OUTn
+
+  OUT13 (D6) is also the spindle PWM pin: with $38 > 0 the timer owns it, the
+  channel is reserved and no output function may use it.
 
   An input channel is "on" when its optocoupler conducts, which pulls the pin
   low against the internal pull-up. A channel's bit in $79 says the contact
@@ -49,7 +53,7 @@
 #define io_h
 
 #define N_IN_CHANNELS     20
-#define N_OUT_CHANNELS    12
+#define N_OUT_CHANNELS    14
 #define IO_ESTOP_BIT      20     // the STOP input's bit in channel words and in $79
 #define IO_DRVPWR_BIT     21     // the driver power input's bit (drvpwr.h)
 #define IO_N_IN_PINS      (N_IN_CHANNELS + 2)   // channels, STOP, DRV PWR
@@ -114,11 +118,17 @@ uint8_t io_in_channel(uint8_t fn);
 uint8_t io_probe_raw();
 
 // Output channels: logical state (before $93), bit n-1 = OUTn.
-void io_out_write(uint8_t channel, uint8_t on);   // channel 1-12; 0 is ignored
+void io_out_write(uint8_t channel, uint8_t on);   // channel 1-14; 0 is ignored
 uint16_t io_out_state();
 
-// Channel (1-12) of output function f, 0 if unused.
+// Channel (1-14) of output function f, 0 if unused.
 uint8_t io_out_channel(uint8_t fn);
+
+// A channel whose pin another module drives (OUT13 as the spindle PWM): io.c
+// leaves the pin alone and refuses to give the channel a function. Freeing
+// it puts the channel's own level on the pin again.
+void io_out_reserve(uint8_t channel, uint8_t reserved);
+uint8_t io_out_reserved(uint8_t channel);
 
 // Checks a new channel number for input / output function fn against the
 // other assignments. Returns a status code (STATUS_OK if it may be stored).

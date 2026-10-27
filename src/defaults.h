@@ -167,22 +167,60 @@
 #ifndef DEFAULT_MPG_MAX_FEED
   #define DEFAULT_MPG_MAX_FEED 3000.0
 #endif
+// $33-$37: spindle VFD over RS485. Off until a drive is wired; then Delta's
+// usual RTU frame 8N2 (09-04 = 13) at 9600 baud, address 1, and $30 = 400 Hz
+// (a 24000 rpm two-pole spindle with $30=24000).
+#ifndef DEFAULT_VFD_TYPE
+  #define DEFAULT_VFD_TYPE 0
+#endif
+#ifndef DEFAULT_VFD_ADDRESS
+  #define DEFAULT_VFD_ADDRESS 1
+#endif
+#ifndef DEFAULT_VFD_BAUD
+  #define DEFAULT_VFD_BAUD 9600
+#endif
+#ifndef DEFAULT_VFD_FORMAT
+  #define DEFAULT_VFD_FORMAT 1
+#endif
+#ifndef DEFAULT_VFD_MAX_HZ
+  #define DEFAULT_VFD_MAX_HZ 400.0
+#endif
+// $38: PWM on OUT13 (D6). Off: OUT13 is an output like the others; the 0-10 V
+// on A12 does not depend on it.
+#ifndef DEFAULT_SPINDLE_PWM
+  #define DEFAULT_SPINDLE_PWM 0
+#endif
+// $39, $44, $45: operator panel (panel.h). The buttons are on (pull-ups:
+// nothing wired reads released), the potentiometers off until wired.
+#ifndef DEFAULT_PANEL_BUTTONS
+  #define DEFAULT_PANEL_BUTTONS 1
+#endif
+#ifndef DEFAULT_POT1_FUNC
+  #define DEFAULT_POT1_FUNC 0
+#endif
+#ifndef DEFAULT_POT2_FUNC
+  #define DEFAULT_POT2_FUNC 0
+#endif
 // $58: M6. 0 = refused as in upstream Grbl, 1 = pause for a manual tool change.
 #ifndef DEFAULT_M6_MODE
   #define DEFAULT_M6_MODE 1
 #endif
-// $60-$78: channel of each input function, in io.h order (0 = unused).
+// $60-$78: channel of each input function, in io.h order (0 = unused), as
+// shield v4 has them: limits IN1-IN8, servo alarms IN17-IN20 (next to their
+// DE-15 connectors), probe IN9, reset/hold/start IN13-IN15, door IN10, at
+// speed IN11, spindle fault IN12; IN16 free.
 #ifndef DEFAULT_IN_FUNC
-  #define DEFAULT_IN_FUNC { 1, 2, 3, 4, 5, 6, 7, 8,  9, 10, 11, 12,  13,  14, 15, 16, 17,  18, 19 }
+  #define DEFAULT_IN_FUNC { 1, 2, 3, 4, 5, 6, 7, 8,  17, 18, 19, 20,  9,  13, 14, 15, 10,  11, 12 }
 #endif
 // $79: NC inputs. 0 = every input active while its optocoupler conducts.
 #ifndef DEFAULT_IN_INVERT
   #define DEFAULT_IN_INVERT 0
 #endif
 // $80-$92: channel of each output function, in io.h order (0 = unused):
-// FWD, REV, flood, mist, AUX0-AUX5, collet, servo reset, VFD reset.
+// FWD, REV, flood, mist, AUX0-AUX5, collet, servo reset, VFD reset. OUT13
+// stays free for the spindle PWM ($38).
 #ifndef DEFAULT_OUT_FUNC
-  #define DEFAULT_OUT_FUNC { 1, 2, 3, 4,  5, 6, 7, 8, 12, 0,  9, 10, 11 }
+  #define DEFAULT_OUT_FUNC { 1, 2, 3, 4,  5, 6, 7, 8, 12, 14,  9, 10, 11 }
 #endif
 // $93: inverted outputs.
 #ifndef DEFAULT_OUT_INVERT

@@ -24,7 +24,7 @@ What this port adds to Grbl 1.1h:
 * **Four axes, X Y Z A.** The A motor is a setting away from being an
   independent rotary axis, an independent linear axis, or a **second motor of
   X or Y** with automatic gantry squaring during homing (`$42`).
-* **Twenty inputs and twelve outputs, all universal.** Every function is a
+* **Twenty inputs and fourteen outputs, all universal.** Every function is a
   setting naming its channel (`$60`–`$93`): limit switches at both ends of
   every axis (X−, X+, …), servo alarms (`ALARM:17`), probe, buttons, door,
   the VFD's at-speed and fault relays; spindle FWD/REV, coolant, six AUX
@@ -132,10 +132,11 @@ same; `$I` and the banner report `display=0`.
 ## Wiring
 
 The pin table is the one approved for the peripheral shield
-([PINOUT.md](PINOUT.md), v2): every block sits on one stretch of the
-headers, in the order of its terminals. The functions in brackets are the
-defaults — the twenty inputs and twelve outputs are universal channels whose
-functions are settings (see below).
+([PINOUT.md](PINOUT.md), v2, with the additions of shield v4): every block
+sits on one stretch of the headers, in the order of its terminals. The
+functions in brackets are the defaults, those of shield v4 — the twenty
+inputs and fourteen outputs are universal channels whose functions are
+settings (see below).
 
 2x18 header D22–D53:
 
@@ -149,14 +150,14 @@ functions are settings (see below).
 | D33 | Z step (PJ4) | | D32 | **IN6** (Z+ limit) |
 | D35 | Z dir (PJ5) | | D34 | **IN7** (A− limit) |
 | D37 | A step (PJ6) | | D36 | **IN8** (A+ limit) |
-| D39 | A dir (PI14) | | D38 | **IN9** (X servo alarm) |
-| D41 | drive enable | | D40 | **IN10** (Y servo alarm) |
-| D43 | **IN17** (safety door) | | D42 | **IN11** (Z servo alarm) |
-| D45 | **IN18** (spindle at speed) | | D44 | **IN12** (A servo alarm) |
-| D47 | **IN19** (spindle fault) | | D46 | **IN13** (probe) |
-| D49 | **STOP** — safety relay, EXTI4 (fixed) | | D48 | **IN14** (reset button) |
-| D51 | **IN20** (free) | | D50 | **IN15** (hold button) |
-| D53 | **DRV PWR** — drive supply present (fixed) | | D52 | **IN16** (start button) |
+| D39 | A dir (PI14) | | D38 | **IN9** (probe) |
+| D41 | drive enable | | D40 | **IN10** (safety door) |
+| D43 | **IN17** (X servo alarm) | | D42 | **IN11** (spindle at speed) |
+| D45 | **IN18** (Y servo alarm) | | D44 | **IN12** (spindle fault) |
+| D47 | **IN19** (Z servo alarm) | | D46 | **IN13** (reset button) |
+| D49 | **STOP** — safety relay, EXTI4 (fixed) | | D48 | **IN14** (hold button) |
+| D51 | **IN20** (A servo alarm) | | D50 | **IN15** (start button) |
+| D53 | **DRV PWR** — drive supply present (fixed) | | D52 | **IN16** (free) |
 
 Top header and analog:
 
@@ -168,8 +169,9 @@ Top header and analog:
 | D10 | **OUT4** (mist) | | D2 | **OUT10** (servo reset) |
 | D9 | **OUT5** (AUX0, dust extraction) | | D14 | **OUT11** (VFD reset) |
 | D8 | **OUT6** (AUX1) | | D15 | **OUT12** (AUX4) |
-| D6 | spindle PWM (TIM4_CH2, 1 kHz, 60000 steps) | | D16 | **BRAKE** — Z brake (fixed) |
-| A12 (DAC0) | spindle speed 0–3.3 V (0–10 V after the shield) | | D7 | spare (input only: JTAG pull-up) |
+| D6 | **OUT13** — or the spindle PWM (TIM4_CH2, 1 kHz, 60000 steps) with `$38` | | D16 | **BRAKE** — Z brake (fixed) |
+| A2 | **OUT14** (AUX5) | | D7 | spare (input only: JTAG pull-up) |
+| A12 (DAC0) | spindle speed 0–3.3 V (0–10 V after the shield) | | A0, A1 / A4–A6 | operator panel: potentiometers / START, HOLD, STOP |
 
 **The GIGA is a 3.3 V board and its pins are not for 5 V or 24 V signals.**
 The shield (PINOUT.md) puts every input behind an optocoupler and every
@@ -178,7 +180,8 @@ bare board the inputs have internal pull-ups and are **active low** — a
 switch or an open-collector output to GND — and the outputs drive 3.3 V.
 
 Pins D68–D75 (display connector), SDA1/SCL1 next to AREF (the display's touch
-and LED bus), D0/D1 and D17–D21 are left free. D54–D67 (the camera pins) are
+and LED bus), D0/D1 and D20/D21 are left free; D17–D19 are the RS485 port to
+the spindle VFD (shield v4, `$33`, see below). D54–D67 (the camera pins) are
 free as well and reach the shield through the Display Shield's camera socket
 J3 (PLAN.md part 5).
 
@@ -262,28 +265,31 @@ Both belt motors need the same `$100`/`$101`.
 
 ## Inputs and outputs
 
-The peripheral shield has **twenty inputs IN1–IN20** and **twelve outputs
-OUT1–OUT12**. None of them has a fixed job: each function is a setting holding
+The peripheral shield has **twenty inputs IN1–IN20** and **fourteen outputs
+OUT1–OUT14**. None of them has a fixed job: each function is a setting holding
 the number of the channel it is on (0 = not used), so the wiring is changed in
 `$$`, not in the source. Fixed are only step/direction/enable, the central
-STOP (D49), the driver power input (D53), the Z brake (D16), PWM (D6) and the
-DAC (A12).
+STOP (D49), the driver power input (D53), the Z brake (D16), the DAC (A12)
+and the operator panel; OUT13 (D6) is the spindle PWM instead with `$38` > 0.
+The defaults are those of shield v4, whose servo alarms come in on IN17–IN20
+next to their DE-15 connectors; they apply to new settings (`$RST=$`) — an
+update keeps the assignment a board already has.
 
 | Setting | Input function | Default | `Pn:` |
 |---|---|---|---|
 | `$60`–`$67` | limit switches X−, X+, Y−, Y+, Z−, Z+, A−, A+ | IN1–IN8 | `X` `Y` `Z` `A` |
-| `$68`–`$71` | servo alarms X, Y, Z, A | IN9–IN12 | `M` |
-| `$72` | probe (`G38.x`) | IN13 | `P` |
-| `$73`–`$76` | reset, feed hold, cycle start, safety door buttons | IN14–IN17 | `R` `H` `S` `D` |
-| `$77` | spindle at speed (VFD relay) | IN18 | |
-| `$78` | spindle fault (VFD relay) | IN19 | |
+| `$68`–`$71` | servo alarms X, Y, Z, A | IN17–IN20 | `M` |
+| `$72` | probe (`G38.x`) | IN9 | `P` |
+| `$73`–`$76` | reset, feed hold, cycle start, safety door buttons | IN13, IN14, IN15, IN10 | `R` `H` `S` `D` |
+| `$77` | spindle at speed (VFD relay) | IN11 | |
+| `$78` | spindle fault (VFD relay) | IN12 | |
 | `$79` | **NC mask**: bit n−1 = INn, bit 20 = STOP, bit 21 = DRV PWR | 0 (all NO) | |
 
 | Setting | Output function | Default |
 |---|---|---|
 | `$80`, `$81` | spindle **FWD** (`M3`), **REV** (`M4`) — never both | OUT1, OUT2 |
 | `$82`, `$83` | flood `M8`, mist `M7` | OUT3, OUT4 |
-| `$84`–`$89` | AUX0–AUX5 (`M62`–`M65 P0`–`P5`) | OUT5–OUT8, OUT12, none |
+| `$84`–`$89` | AUX0–AUX5 (`M62`–`M65 P0`–`P5`) | OUT5–OUT8, OUT12, OUT14 |
 | `$90` | collet open | OUT9 |
 | `$91` | servo alarm reset (pulse) | OUT10 |
 | `$92` | VFD fault reset (pulse) | OUT11 |
@@ -325,7 +331,9 @@ inputs are debounced for 2 ms, limits for 0.3 ms, buttons for 10 ms.
 AUX outputs that also switch on whenever the spindle runs (default AUX0, the
 dust extraction). `$93` inverts outputs at the pin; the display and the
 M-codes keep showing the logical state. Changing an assignment switches the
-function off first.
+function off first. OUT13 (D6) and OUT14 (A2) are outputs like the others —
+OUT13 only while `$38=0`: with the PWM on, the timer owns D6 and no function
+may be put on OUT13 (`error:42`; `$38` > 0 is refused while one is).
 
 ### Central STOP (`$57`, D49)
 
@@ -476,6 +484,130 @@ shows `en=` and `brake=`.
   `M0` with `[MSG:Tool change T<n>, cycle start to resume]`. Change the tool
   with the COLLET button, then START. `$58=0`: refused as in upstream Grbl.
 
+### Operator panel (`$39`, `$44`, `$45`, A0/A1, A4–A6)
+
+Shield v4 brings a small panel straight to the GIGA's analog header — not
+isolated, short wires to the control cabinet, JST XH connectors:
+
+| Signal | Pin | Wiring |
+|---|---|---|
+| potentiometer 1 | A0 (PC4) | 10 k from +3V3 through 100 Ω, wiper through 1 k, 100 nF at the pin |
+| potentiometer 2 | A1 (PC5) | as potentiometer 1 |
+| START | A4 (PC3) | button to GND, 10 k pull-up, 1 k + 100 nF |
+| HOLD | A5 (PC2) | as START |
+| STOP | A6 (PC0) | as START |
+
+* **Buttons** (`$39=1`, default — the internal pull-ups keep unwired pins
+  released). **START** and **HOLD** are cycle start and feed hold, exactly as
+  those functions on an input channel (same 10 ms debounce, `Pn:S` / `Pn:H`).
+  **STOP** ends the program with a controlled stop: feed hold, and once the
+  machine stands Grbl resets with the machine declared stopped — position
+  kept, no alarm, spindle and coolant off, `[MSG:Panel STOP]`. Standing, it
+  resets at once (spindle off); a program from the USB stick stops as its own
+  STOP; homing, which knows no hold, is reset. **Not the safety STOP on D49.**
+* **Potentiometers** (`$44` for A0, `$45` for A1; 0 none, 1 feed override,
+  2 spindle override, 3 rapid override; default 0 — usually `$44=1`, `$45=2`).
+  Feed and spindle: 10–100 % over the left half, **100 %** in a band of
+  ±2.5 % around the middle, 100–200 % over the right half; rapid: thirds,
+  25 / 50 / 100 %. A potentiometer sets its override when it is **turned**
+  (by more than 1.5 %) — and once at start-up and after every reset — through
+  Grbl's own override steps, so the PC and the touch screen can still change
+  the override in between; the knob takes over again when it moves.
+
+`$I` shows `pnl=<buttons: bit 0 START, 1 HOLD, 2 STOP>/<A0>/<A1>` (readings
+0–4095, 0 while off).
+
+### Spindle VFD over RS485 (`$33`–`$37`, D17–D19)
+
+Shield v4 has an isolated RS485 port (ADM2587E) for the spindle VFD on
+**Serial2 = USART2**: **D18** TX (PD5), **D19** RX (PD6), and **D17** (PI9)
+switches the transceiver to transmit (high) or receive (low; a 10 k
+pull-down on the shield keeps it receiving while the GIGA boots). Half
+duplex, 120 Ω termination by jumper. With `$33=1` Grbl is a **Modbus RTU**
+master on it and runs the drive over the bus — in addition to the FWD/REV
+outputs and the 0–10 V on A12, which keep working, so either wiring works.
+
+| Setting | Default | |
+|---|---|---|
+| `$33` | 0 | drive: 0 none (0–10 V and relays only), 1 Delta (MS300, C2000, VFD-E, …) |
+| `$34` | 1 | Modbus address of the drive (1–247) |
+| `$35` | 9600 | baud rate (1200–115200) |
+| `$36` | 1 | frame: 0 8N1, 1 8N2, 2 8E1, 3 8O1, 4 8E2, 5 8O2 |
+| `$37` | 400 | drive frequency at S = `$30` (Hz, up to 655.35) |
+
+* **`M3` / `M4`** run forward / reverse, **`M5`** and `S0` stop. The
+  frequency is S / `$30` × `$37`, with S limited to `$31`–`$30` and scaled by
+  the spindle override exactly as for the PWM output: `$30=24000`, `$37=400`,
+  `S12000` → 200.00 Hz.
+* **Every 100 ms** Grbl reads the drive's error code, status, set point and
+  output frequency (which also feeds the drive's own communication watchdog),
+  and that takes the place of the relay contacts:
+  * **at speed** — output frequency within 2 % of the set point (at least
+    0.5 Hz) and the drive running the way it was told: `$52` waits for it
+    after `M3`/`M4`/S and `$53` watches it while cutting, as with the relay
+    (which is not used while `$33` > 0);
+  * **fault** — the drive reports an error code: spindle off, controlled
+    stop, `ALARM:19`, `$X` refused (`error:43`) until it clears; a reset or
+    `$X` sends the drive's fault reset (and pulses `$92` as before). The fault
+    relay (`$78`), if assigned, still counts as well;
+  * **collet** — stays closed while the drive reports any output frequency,
+    or has not been seen standing since it was last told to run.
+* **`ALARM:23`** (after a controlled stop, position kept) when the drive
+  cannot be trusted with the spindle: no valid answer after three tries while
+  the spindle should run or may still run; a command it refused (a Modbus
+  exception — a frequency above its maximum, say); or a drive that does not
+  run, stop, turn or take the frequency as told for 1 s (its run command on
+  the keypad, say) — Grbl repeats the command meanwhile. `$X` and `$H` are
+  refused with **`error:51`** while that lasts. A silent drive with the
+  spindle off and standing is no alarm, it only shows in `$VFD` and `$I`. A
+  drive that was told to run and then went silent keeps `$X` refused until it
+  answers again (or `$33=0`): set its own communication timeout so it stops
+  by itself.
+* Not with laser mode: `$32` and `$33` exclude each other (`error:5`).
+  `$33`–`$36` change only with the spindle stopped (`error:8`).
+
+Delta drive (MS300 / C2000 parameter numbers; VFD-E: frequency source
+`02-00`=4, run source `02-01`=3 or 4):
+
+| Parameter | Value | |
+|---|---|---|
+| `00-20` | 1 | frequency command from RS485 |
+| `00-21` | 2 | run command from RS485 |
+| `09-00` | = `$34` | address |
+| `09-01` | = `$35` / 1000 | baud rate in kbps (9.6) |
+| `09-02` | 1 or 2 | on a communication loss: warn and ramp / coast to a stop |
+| `09-03` | 3.0 | communication timeout, s (Grbl asks every 0.1 s; a settings write to flash can hold the main loop for up to 2 s) |
+| `09-04` | 12 + `$36` | RTU frame: 13 = 8N2 (`$36=1`), 14 = 8E1 (`$36=2`) |
+| `01-00` | ≥ `$37` | highest output frequency |
+
+**`$VFD`** prints what Grbl knows:
+
+    [VFD:Delta link=OK want=FWD,200.00 drive=FWD,200.00,199.50 err=0 st=0503
+     remote=3 at=1 trouble=0 tx=1204 ok=1204 retry=0 fail=0 exc=0/0 sim=0 clk=120]
+
+`link` OFF (`$33=0`), WAIT (no answer yet), OK, LOST; `want` the command and
+frequency Grbl wants; `drive` what the drive reports: run state, set point,
+output frequency; `err` its error code, `st` its status word (2101H, hex);
+`remote=3` frequency and run command both from RS485 (`00-20`/`00-21` right);
+`trouble` 1 silent, 2 refused, 3 not following; then the transactions, their
+retries, failures and exceptions (count / last code), and the USART2 kernel
+clock in MHz. **`$VFD=R2100,4`** reads up to 8 registers, **`$VFD=W2000,12`**
+writes one — address and value hexadecimal, Idle or Alarm only; `$VFD=R0900`
+reads the drive's own `09-00`. After a write Grbl sends its command and
+frequency again. `$I` has `vfd=<link 0 off, 1 waiting, 2 ok, 3 lost>/<error
+code>/<output frequency, 0.01 Hz>/<failed transactions>`.
+
+How it runs: USART2 interrupt-driven with its 16-byte FIFOs on, below the
+Grbl timers; D17 goes high 3 µs before the first start bit, the receiver is
+off while sending (no echo, whatever the transceiver's ~RE does) and D17
+drops in the transmit-complete interrupt after the last stop bit; a frame
+ends with the USART's receiver timeout after 3.5 characters (1.75 ms above
+19200 baud). One transaction at a time from the main loop (`vfd_service()`),
+never waiting for the line: CRC-16, a 100 ms answer timeout, two retries,
+exceptions; a stop goes out before anything else. Other vendors (Huanyang
+and the like) are a profile in `src/vfd.c` — their registers and the meaning
+of their status; the rest is common.
+
 ### Direction setup (`$56`)
 
 Some drives need time between a direction change and the next step — the
@@ -504,15 +636,32 @@ For tests without a machine (all used by `tests/test_io.py`):
   (negative: backwards) at rate detents a second (default 100) by switching
   the pulls of the A and B pins in quadrature from the input scan — TIM8
   counts the real edges.
+* `$TPNL=mask[,ms]` presses the operator panel's buttons (bit 0 START, 1
+  HOLD, 2 STOP) as if their pins were low, ms from now if given; `$TPNL=0`
+  releases them. `$TPOT=n,value` gives potentiometer n (1 = A0, 2 = A1) the
+  reading value (0–4095) instead of its pin, `$TPOT=n,-1` hands it back
+  (`tests/test_panel.py`).
+* `$TVFD=mode[,code]` puts a simulated Delta drive in place of the RS485
+  port; it gets the very frames the port would send: 1 healthy (output ramps
+  at 400 Hz/s; an error it reported stays latched until its fault reset), 2
+  in fault with error code (default 2; the fault reset does nothing while it
+  lasts), 3 silent, 4 every second answer broken, 5 ignores run and stop
+  (keypad control); 0 the port again (`tests/test_vfd.py`).
 
 * `$SPLASH[=ms]` shows the splash screen again, for at least ms (default
   3000) — for screenshots.
 
 None of them survives a power cycle; all survive a reset on purpose.
 
-The spindle **speed** is a PWM carrier on D6 and simultaneously an analog
-level on A12: 0 V at S0 and 3.3 V at `$30`. Laser mode (`$32=1`) modulates
-both per motion segment, as upstream does with the PWM pin.
+The spindle **speed** is an analog level on A12 — 0 V at S0 and 3.3 V at
+`$30` — and, with **`$38`** > 0, also a PWM carrier on D6 (= OUT13, TIM4_CH2,
+1 kHz). `$38`: **0** off (default; D6 is OUT13), **1** PWM, **2** PWM
+inverted at the pin — for a TTL PWM input behind OUT13, which sinks to 0 V
+when the pin is high, so that input sees the right duty (beware: with the
+GIGA not yet driving the pin, during boot, such an input sees full power;
+give the laser its own enable). Laser mode (`$32=1`) needs the PWM
+(`error:17` otherwise) and modulates both per motion segment, as upstream
+does with the PWM pin.
 
 ## Programs from a USB stick
 
@@ -686,11 +835,11 @@ The pages:
 * **OVR** — feed −10 / −1 / 100 % / +1 / +10 (the ±buttons repeat when
   held), rapid 25 / 50 / 100 %, spindle −10 / 100 % / +10 and spindle **STOP**
   (in a feed hold), **FLOOD** and **MIST** toggles.
-* **I/O** — IN1–IN20 and OUT1–OUT12 as indicators, each with the name of the
+* **I/O** — IN1–IN20 and OUT1–OUT14 as indicators, each with the name of the
   function assigned to it; STOP, drives, Z brake and collet; **AUX0 – AUX5**
   as on/off buttons, **COLLET** (hold to open, tap to close) and the
   **SERVO** and **VFD reset** pulses.
-* **`$$`** — all 92 settings, six to a page, each with its number, name, a
+* **`$$`** — all 101 settings, six to a page, each with its number, name, a
   one-line hint and its current value (masks as axis letters or channel
   numbers, choices by name). Tapping one opens an editor with a full
   explanation of what the setting does and:
@@ -772,10 +921,16 @@ inversion — every input has its own bit in `$79` here), plus:
 
 | Setting | Default | Meaning |
 |---|---|---|
+| `$33` | 0 | spindle VFD over RS485: 0 none, 1 Delta |
+| `$34` `$35` `$36` | 1, 9600, 1 | VFD Modbus address, baud rate, frame (0 8N1, 1 8N2, 2 8E1, 3 8O1, 4 8E2, 5 8O2) |
+| `$37` | 400 | VFD frequency at S = `$30` (Hz) |
+| `$38` | 0 | PWM on OUT13 (D6): 0 off, 1 on, 2 inverted |
+| `$39` | 1 | operator panel buttons START/HOLD/STOP (A4–A6) in use |
 | `$40` | 0 | kinematics: 0 Cartesian, 1 CoreXY |
 | `$41` | 0 | CoreXY limits: 0 per motor, 1 per head axis |
 | `$42` | 0 | A axis: 0 rotary, 1 linear, 2 second X motor, 3 second Y motor |
 | `$43` | 0 | home an independent A axis in `$H` |
+| `$44` `$45` | 0, 0 | operator panel potentiometer A0 / A1: 0 none, 1 feed, 2 spindle, 3 rapid override |
 | `$46` | 1 | AUX outputs that run with the spindle (mask AUX0=1 … AUX5=32) |
 | `$48` `$49` `$50` | 200, 100, 200 | Z brake: drives on → released, released → first step, brake on → drives off (ms) |
 | `$51` | 5000 | spindle run-down before the collet may open (ms) |
@@ -787,9 +942,9 @@ inversion — every input has its own bit in `$79` here), plus:
 | `$57` | 0 | central STOP input in use |
 | `$58` | 1 | `M6`: 0 error (upstream), 1 pause for a manual tool change |
 | `$59` | 1 | Z brake: 0 the drive works it, 1 the BRAKE output |
-| `$60`–`$78` | 1 … 19 | input channel of each input function (0 = not used) |
+| `$60`–`$78` | 1 … 8, 17 … 20, 9, 13, 14, 15, 10, 11, 12 | input channel of each input function (0 = not used) |
 | `$79` | 0 | NC inputs: bit n−1 = INn, bit 20 = STOP, bit 21 = DRV PWR |
-| `$80`–`$92` | 1 2 3 4 5 6 7 8 12 0 9 10 11 | output channel of each output function (0 = not used) |
+| `$80`–`$92` | 1 2 3 4 5 6 7 8 12 14 9 10 11 | output channel of each output function (0 = not used) |
 | `$93` | 0 | inverted outputs: bit n−1 = OUTn |
 | `$94` | 0 | driver power input (D53) watched |
 | `$95` | 1000 | drive supply back this long before `$H`/`$X` (ms) |
@@ -799,17 +954,20 @@ inversion — every input has its own bit in `$79` here), plus:
 | `$103` `$113` `$123` `$133` | 8.889, 3600, 360, 360 | A axis steps, rate, acceleration, travel (degrees with `$42=0`) |
 
 The settings version changed with the I/O channels (21): the first start of
-that firmware restored the defaults. Versions 22 (`$94`, `$95`) and 23
-(`$96`–`$98`) only append settings, and a version 21 or 22 record is taken
-over as it is (the new ones get their defaults). Older records are still
+that firmware restored the defaults. Versions 22 (`$94`, `$95`), 23
+(`$96`–`$98`), 24 (`$33`–`$37`) and 25 (`$38`, `$39`, `$44`, `$45`) only append
+settings, and a version 21–24 record is taken over as it is (the new ones get
+their defaults; a record with laser mode on keeps the PWM, `$38=1`). Older records are still
 replaced by the defaults — note `$$` and `$#` before updating.
 
 New status codes: `error:39` collet open, `40` STOP active, `41` limit switch
 held in that direction, `42` channel already used, `43` VFD fault active,
 `44` collet interlock, `45` no limit switch at the homing end, `50` drives
-without supply (or not back for `$95` yet). New alarms: `ALARM:14` spindle
-not at speed, `17` servo alarm, `18` STOP, `19` VFD fault, `20` homing hit the
-far switch, `22` drive supply lost.
+without supply (or not back for `$95` yet), `51` the VFD over RS485 is silent,
+refused a command or does not follow, `52` `$VFD=R/W` answered with a Modbus
+exception. New alarms: `ALARM:14` spindle not at speed, `17` servo alarm,
+`18` STOP, `19` VFD fault, `20` homing hit the far switch, `22` drive supply
+lost, `23` VFD over RS485 silent, refusing or not following.
 
 Settings live in the STM32's internal flash, in two 128 kB sectors of bank 2
 just below the M4 program (0x08140000 and 0x08160000). Each change appends a
@@ -921,6 +1079,8 @@ src/
   jog.[ch]               jog commands: the sender's $J=, the touch screen's, the handwheel's
   drvpwr.[ch]            driver power input (D53), ALARM:22
   mpg.[ch]               handwheel pendant: TIM8 wheel, selectors, LED
+  vfd.[ch]               spindle VFD over RS485: Modbus RTU master, Delta profile, $VFD, $TVFD
+  panel.[ch]             operator panel: START/HOLD/STOP buttons, override potentiometers, $TPNL, $TPOT
   job.[ch]               programs from the USB stick: check pass, run, STOP, $F commands
   grbl_job.h             shared block for the USB stick: file listing, requests, the line ring
   grbl_shm.h             shared memory layout between the cores
@@ -928,7 +1088,7 @@ src/
   planner.c gcode.c stepper.c limits.c ...   Grbl core, four axes
   hal/
     hal.h                the platform interface the C core sees
-    hal_h7.cpp           GPIO, TIM6/7/17, TIM4 PWM, DAC, delays, LEDs
+    hal_h7.cpp           GPIO, TIM6/7/17, TIM4 PWM, DAC, TIM8 handwheel, USART2 RS485, delays, LEDs
     hal_serial.cpp       USB CDC transport
     hal_nvs.cpp          settings log in internal flash
     hal_shm.cpp          shared memory, starting the M4
@@ -962,6 +1122,9 @@ tests/
   test_corexy.py         CoreXY: belt motor pulses, closure, feed rate, $41, exclusions
   test_touch.py          every touch button and the $$ editor via $TOUCH, screenshots (--shots)
   test_mpg.py            handwheel: steps, OFF/blocked, following the wheel, dropped excess, axis change, soft limits
+  test_panel.py          OUT13/OUT14, the PWM on OUT13 ($38), panel buttons and potentiometers
+  test_vfd.py            spindle VFD over RS485: M3/M4/M5/S, at speed, fault, silent / refusing / keypad drive,
+                         $VFD; simulated ($TVFD) or the PC as the drive on a USB-RS485 adapter (--rs485)
   demo_run.py            streams examples/demo_complex.nc and times it
 examples/                demo g-code; usb/ - test files for a stick
 docs/*.png               screenshots of the display ($SCREEN)
@@ -1183,6 +1346,61 @@ through TIM8), all passing:
   direction-to-step time was **35.4 µs**; 0 merged pulses and the travel
   exact to the step both times.
 
+**Spindle VFD over RS485** (`test_vfd.py`, the simulated Delta drive of
+`$TVFD`, which gets the frames the port would send; `$30=24000`, `$37=400`),
+all passing:
+
+* `M3 S12000` → FWD 200.00 Hz at the drive; `M4 S6000` → REV 100.00; the
+  override +10 % → 110.00 at the drive; `S100` with `$31=6000` → 100.00;
+  `S30000` → 400.00; `S0` and `M5` → stop, output down to 0; no failed
+  transaction, `remote=3`.
+* `$52=5000`: `M3 S24000` (the drive ramps at 400 Hz/s) answers ok after
+  1.05 s with `at=1`; `S12000` after 0.60 s (the 250 ms settle included);
+  `$52=500` → `ALARM:14`, the drive told to stop.
+* Drive error 7 → `ALARM:19`; `$X` → `error:43` while the cause lasts; once
+  it is gone `$X` sends the fault reset, the error clears, `$X` ok.
+* Silent drive: spindle off → `link=LOST`, no alarm; `M3` → `ALARM:23`, `$X`
+  ok (no run command went out); running → `ALARM:23` after 0.46 s, `$X` →
+  `error:51` until the drive answers and stops. During `G1 X50 F600`: Run →
+  Hold → `ALARM:23` at X=14.92, position kept.
+* Every second answer with a bad CRC: 13 retries, no failed transaction, no
+  alarm. A drive that ignores run (keypad): `ALARM:23` after 1.07 s,
+  `remote=0`. 650 Hz refused with exception 3 → `ALARM:23`, `$X` ok after
+  `$37=400`.
+* `$VFD=R2100,4` → `0000,0503,4E20,4E20`; `$VFD=W2001,1388`; an unknown
+  register → `[MSG:VFD exception 2]`, `error:52`. The collet is refused while
+  the drive runs down and opens once it stands; `$32=1` with `$33=1` →
+  `error:5`; `$34` while the spindle runs → `error:8`.
+* With `$33=0` the `spindle` and `collet` groups of `test_io.py` pass
+  unchanged (relays, 0–10 V). The settings of version 23 were taken over.
+  The real USART2 sent, timed out and retried with nothing connected (the
+  transmit-complete interrupt drops D17); answers over the wire need a drive
+  or `--rs485` with a USB-RS485 adapter.
+
+**Shield v4: OUT13/OUT14, the PWM on OUT13, the operator panel**
+(`test_panel.py`, the panel through `$TPNL` / `$TPOT`), all passing:
+
+* AUX4 on OUT13: `M64 P4` → OUT13 on, D6 high, `M65 P4` off; AUX5 on OUT14
+  likewise; `$88=15` and bit 14 of `$93` → `error:3`; `$93=4096` inverts D6.
+* `$38=1` refused while a function is on OUT13 (`error:42`), and a function
+  onto OUT13 while it is the PWM; `M3 S500` → PWM 500 ‰, DAC 2047; D6 low at
+  S0 and high at full duty, `$38=2` the other way round; `$38=0` → PWM off,
+  the DAC still at 2047; laser mode refused without the PWM (`error:17`), as
+  is `$38=0` in laser mode.
+* From the panel during `G1 X50 F600`: HOLD → Hold, standing; START → Run.
+  STOP while moving: `[MSG:Panel STOP]`, hold, reset to Idle without an
+  alarm at X=38.82, spindle off — and a `G1 X0` afterwards lands exactly on 0
+  (position kept). STOP standing with the spindle on: off, Idle. `$39=0`
+  ignores the buttons.
+* Potentiometers: middle → 100 %; A0 at 0 / 4095 / 1024 → feed 10 / 200 /
+  57 %; A1 at 3000 → spindle 144 %; the PC's +10 % (154 %) stays while the
+  knob rests, and when it moves less than the dead band; turned → 149 %;
+  after a reset they set 10 % and 149 % again; `$44=3`: rapid 25 / 50 /
+  100 %.
+* On the same firmware `test_io.py`, `test_axes.py` and `test_vfd.py` pass;
+  a version 24 settings record was taken over, the board's own I/O
+  assignment kept.
+
 **CoreXY** (`test_corexy.py`, 100 steps/mm, `$40=1`), all passing — pulses
 counted per driver by `$I motor=`:
 
@@ -1333,7 +1551,8 @@ exercised through the test hooks, which drive the input pins themselves, not
 with real switches, relays, a brake or drives; the gantry squaring of a slave
 A and CoreXY's homing not at all; the probe and the buttons only by their
 pins. The STOP reaction is the firmware's own measurement — to be confirmed
-with an oscilloscope on the shield.
+with an oscilloscope on the shield. The VFD over RS485 has not met a real
+drive yet.
 
 ---
 

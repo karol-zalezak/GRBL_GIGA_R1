@@ -169,6 +169,8 @@ void report_feedback_message(uint8_t message_code)
       printPgmString(PSTR("E-stop")); break;
     case MESSAGE_DRIVER_POWER_ON:
       printPgmString(PSTR("Driver power on")); break;
+    case MESSAGE_PANEL_STOP:
+      printPgmString(PSTR("Panel STOP")); break;
     case MESSAGE_LIMIT: {
       static const char axis_letter[N_AXIS] = { 'X', 'Y', 'Z', 'A' };
       uint8_t sw = limits_last_trigger(), axis, first = true;
@@ -558,6 +560,15 @@ void report_build_info(char *line)
   print_uint8_base10(hal_pin_read(MPG_LED_PIN) ? 1 : 0);
   printPgmString(PSTR(" spindle="));
   print_uint8_base10(spindle_status());
+  vfd_report_diag();
+  // Operator panel: buttons pressed (bit 0 START, 1 HOLD, 2 STOP) and the
+  // potentiometers' readings (0-4095, 0 when off).
+  printPgmString(PSTR(" pnl="));
+  print_uint8_base10(panel_buttons());
+  serial_write('/');
+  print_uint32_base10(panel_pot(0));
+  serial_write('/');
+  print_uint32_base10(panel_pot(1));
   printPgmString(PSTR(" dir="));
   print_uint32_base10(st_diag_dir_delays);
   serial_write('/');
@@ -575,6 +586,9 @@ void report_build_info(char *line)
   print_uint32_base10(hal_spindle_pwm_readback());
   printPgmString(PSTR(" dac="));
   print_uint32_base10(hal_spindle_dac_readback());
+  // The level of D6 (OUT13 or the PWM) as the pin reads back.
+  printPgmString(PSTR(" d6="));
+  print_uint8_base10(hal_pin_read(SPINDLE_PWM_PIN) ? 1 : 0);
   printPgmString(PSTR(" tim="));
   print_uint32_base10(hal_timer_clock_hz() / 1000000UL);
   serial_write('/');

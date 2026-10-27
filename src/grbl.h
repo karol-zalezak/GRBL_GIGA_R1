@@ -70,6 +70,8 @@
 #include "estop.h"
 #include "drvpwr.h"
 #include "mpg.h"
+#include "vfd.h"
+#include "panel.h"
 #include "job.h"
 #include "display.h"
 

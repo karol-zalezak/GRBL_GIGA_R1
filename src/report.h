@@ -73,6 +73,8 @@
 #define STATUS_JOB_RUNNING 48        // a program from the USB stick runs: no G-code from the PC
 #define STATUS_JOB_PC_BUSY 49        // the display cannot start a program while the PC sends lines
 #define STATUS_DRIVER_POWER 50       // $H/$X refused: the drives have no supply (or not for $95 yet)
+#define STATUS_VFD_TROUBLE 51        // the VFD over RS485 does not answer, refuses or does not follow (vfd.h)
+#define STATUS_VFD_REFUSED 52        // $VFD=R/W: the drive answered with a Modbus exception
 
 // Define Grbl alarm codes. Valid values (1-255). 0 is reserved.
 #define ALARM_HARD_LIMIT_ERROR      EXEC_ALARM_HARD_LIMIT
@@ -101,6 +103,7 @@
 #define MESSAGE_LIMIT 13             // port: which limit switch (report_limit_message)
 #define MESSAGE_TOOL_CHANGE 14       // port: M6 pause
 #define MESSAGE_DRIVER_POWER_ON 15   // port: the drives have their supply again ($95 over)
+#define MESSAGE_PANEL_STOP 16        // port: the operator panel's STOP button (panel.h)
 
 // Prints system status messages.
 void report_status_message(uint8_t status_code);

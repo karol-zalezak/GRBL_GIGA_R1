@@ -63,6 +63,7 @@ typedef struct {
 static io_test_pending_t test_pending[IO_N_TEST_PENDING];
 static uint8_t test_pending_n = 0;
 static volatile uint16_t out_state = 0;    // logical, bit n-1 = OUTn
+static volatile uint16_t out_reserved = 0; // channels another module drives (io_out_reserve)
 static volatile uint32_t test_pulled = 0;  // channels the test hook holds down
 static bool pins_ready = false;
 
@@ -77,6 +78,7 @@ static uint8_t in_pin(uint8_t c)
 static void io_drive(uint8_t c)   // c = 0-based channel
 {
   uint16_t m = (uint16_t)(1u << c);
+  if (out_reserved & m) { return; }
   uint8_t level = ((out_state & m) != 0) != ((settings.out_invert & m) != 0);
   hal_pin_write(out_pins[c], level);
 }
@@ -174,7 +176,8 @@ uint32_t io_functions(uint32_t channels)
 }
 
 
-uint32_t io_read_functions() { return io_functions(io_read_channels()); }
+// The operator panel's START and HOLD buttons count as those functions too.
+uint32_t io_read_functions() { return io_functions(io_read_channels()) | panel_functions(); }
 
 uint8_t io_in_channel(uint8_t fn) { return (fn < N_IN_FUNCS) ? in_tab.fn_channel[fn] : 0; }
 
@@ -198,6 +201,23 @@ void io_out_write(uint8_t channel, uint8_t on)
 
 
 uint16_t io_out_state() { return out_state; }
+
+
+void io_out_reserve(uint8_t channel, uint8_t reserved)
+{
+  if ((channel == 0) || (channel > N_OUT_CHANNELS)) { return; }
+  uint8_t c = channel - 1;
+  uint32_t sreg = GRBL_IRQ_SAVE();
+  if (reserved) { out_reserved |= (uint16_t)(1u << c); }
+  else { out_reserved &= (uint16_t)~(1u << c); io_drive(c); }
+  GRBL_IRQ_RESTORE(sreg);
+}
+
+uint8_t io_out_reserved(uint8_t channel)
+{
+  if ((channel == 0) || (channel > N_OUT_CHANNELS)) { return(false); }
+  return((out_reserved >> (channel - 1)) & 1);
+}
 
 uint8_t io_out_channel(uint8_t fn)
 {
@@ -227,6 +247,7 @@ uint8_t io_check_out_assignment(uint8_t fn, uint8_t channel)
   uint8_t f;
   if (channel > N_OUT_CHANNELS) { return(STATUS_INVALID_STATEMENT); }
   if (channel == 0) { return(STATUS_OK); }
+  if (io_out_reserved(channel)) { return(STATUS_CHANNEL_IN_USE); }   // OUT13 as PWM ($38)
   for (f = 0; f < N_OUT_FUNCS; f++) {
     if ((f != fn) && (settings.out_func[f] == channel)) { return(STATUS_CHANNEL_IN_USE); }
   }

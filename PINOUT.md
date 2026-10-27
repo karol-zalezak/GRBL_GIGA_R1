@@ -18,11 +18,12 @@ doplnený vstup napájania driverov **DRV PWR na D53**.
   | výstupy OUT1–OUT12 a BRAKE | horný konektor zľava doprava | D13–D8, D5–D2, D14–D16 |
   | 0–10 V | analógový konektor | A12 (DAC0) |
 
-- **Univerzálne kanály:** vstupy **IN1–IN20** a výstupy **OUT1–OUT12** sú univerzálne
-  kanály. Kanál je pevne spojený s pinom, **funkciu mu priraďuje nastavenie**
-  (`$60`–`$93`, viď PLAN.md). Uvedené funkcie sú predvolené.
+- **Univerzálne kanály:** vstupy **IN1–IN20** a výstupy **OUT1–OUT14** (OUT13/OUT14 od
+  shieldu v4) sú univerzálne kanály. Kanál je pevne spojený s pinom, **funkciu mu
+  priraďuje nastavenie** (`$60`–`$93`, viď PLAN.md). Uvedené funkcie sú predvolené.
 - **Pevné piny (nemenia sa nastavením):** kroky, smery a enable, centrálne STOP,
-  napájanie driverov (DRV PWR), brzda Z (výkonový výstup 5 A), PWM a 0–10 V.
+  napájanie driverov (DRV PWR), brzda Z (výkonový výstup 5 A), 0–10 V a panel obsluhy;
+  PWM vretena je od 27. 10. 2026 na OUT13 podľa nastavenia `$38`.
 - **Oproti dnešnému firmvéru:** kroky, smery a enable ostávajú. Vstupy a výstupy sa
   presúvajú do blokov, takže dnešné zapojenie holej dosky podľa README prestane platiť
   (dnes nie je pripojený žiadny stroj).
@@ -45,7 +46,7 @@ doplnený vstup napájania driverov **DRV PWR na D53**.
 | STOP | signál z bezpečnostného relé, NC/NO nastaviteľné | D49 | PE4 | 2×18 | **zmena** (dnes dvere); prerušenie EXTI4 |
 | DRV PWR | napájanie driverov je prítomné — vlastný optočlen, sledovanie `$94` | D53 | PG7 | 2×18 | **nový** (14. 10. 2026); číta ho sken 10 kHz |
 | BRAKE | brzda osi Z — výkonový MOSFET do 5 A | D16 | PH13 | komunikačný | **nový** |
-| PWM | rýchlosť vretena PWM (TIM4_CH2, 1 kHz) — rezerva pre laser | D6 | PD13 | UNO | ako dnes |
+| PWM | rýchlosť vretena PWM (TIM4_CH2, 1 kHz) — od 27. 10. 2026 len s `$38` > 0, inak je D6 výstup OUT13 | D6 | PD13 | UNO | ako dnes |
 | 0–10 V | DAC0 → izolačný zosilňovač → op-amp → menič | A12 | PA4 | analógový | ako dnes (DAC) |
 
 ## Vstupy IN1–IN20 (univerzálne)
@@ -64,21 +65,26 @@ aktívny v nule. NC/NO pre každý kanál nastavením.
 | IN6 | D32 | PK4 | 2 | koncák Z+ | **zmena** (dnes alarm Y) |
 | IN7 | D34 | PK5 | 2 | koncák A− (pri slave: 2. spínač portálu) | **zmena** (dnes alarm Z) |
 | IN8 | D36 | PK6 | 2 | koncák A+ | **zmena** (dnes alarm A) |
-| IN9 | D38 | PJ7 | 3 | alarm serva X | **zmena** (dnes OUT1) |
-| IN10 | D40 | PE6 | 3 | alarm serva Y | **zmena** (dnes OUT2) |
-| IN11 | D42 | PI15 | 3 | alarm serva Z | **zmena** (dnes OUT3) |
-| IN12 | D44 | PG10 | 3 | alarm serva A | **zmena** (dnes OUT4) |
-| IN13 | D46 | PH15 | 4 | sonda | **zmena** (dnes OUT5) |
-| IN14 | D48 | PK0 | 4 | tlačidlo RESET | **zmena** (dnes OUT6) |
-| IN15 | D50 | PI11 | 4 | tlačidlo HOLD | **zmena** (dnes OUT7) |
-| IN16 | D52 | PK2 | 4 | tlačidlo START | **zmena** (dnes OUT8) |
-| IN17 | D43 | PI10 | 5 | dvere (DOOR) | **zmena** (dnes RESET) |
-| IN18 | D45 | PI13 | 5 | vreteno na otáčkach (relé meniča) | **zmena** (dnes HOLD) |
-| IN19 | D47 | PB2 | 5 | porucha vretena (relé meniča) | **zmena** (dnes START) |
-| IN20 | D51 | PE5 | 5 | — (voľný) | **zmena** (dnes sonda) |
+| IN9 | D38 | PJ7 | 3 | sonda | **zmena** (dnes OUT1) |
+| IN10 | D40 | PE6 | 3 | dvere (DOOR) | **zmena** (dnes OUT2) |
+| IN11 | D42 | PI15 | 3 | vreteno na otáčkach (relé meniča) | **zmena** (dnes OUT3) |
+| IN12 | D44 | PG10 | 3 | porucha vretena (relé meniča) | **zmena** (dnes OUT4) |
+| IN13 | D46 | PH15 | 4 | tlačidlo RESET | **zmena** (dnes OUT5) |
+| IN14 | D48 | PK0 | 4 | tlačidlo HOLD | **zmena** (dnes OUT6) |
+| IN15 | D50 | PI11 | 4 | tlačidlo START | **zmena** (dnes OUT7) |
+| IN16 | D52 | PK2 | 4 | — (voľný) | **zmena** (dnes OUT8) |
+| IN17 | D43 | PI10 | 5 | alarm serva X | **zmena** (dnes RESET) |
+| IN18 | D45 | PI13 | 5 | alarm serva Y | **zmena** (dnes HOLD) |
+| IN19 | D47 | PB2 | 5 | alarm serva Z | **zmena** (dnes START) |
+| IN20 | D51 | PE5 | 5 | alarm serva A | **zmena** (dnes sonda) |
 
 STOP (D49) je medzi nimi, ale má vlastný optočlen. Za IN20 nasleduje DRV PWR (D53),
 tiež s vlastným optočlenom a vlastnou svorkou.
+
+**Shield v4 (od 27. 10. 2026):** alarmy serv z konektorov DE-15 HD (osi X, Y, Z, A) idú
+na **IN17–IN20**, svorky IN1–IN16 sú univerzálne (zmena kvôli rozloženiu dosky). Predvolené
+funkcie v tabuľke vyššie sú od 27. 10. 2026 tie zo shieldu v4 (schválené používateľom);
+platia pre nové nastavenia (`$RST=$`), aktualizácia firmvéru priradenie na doske nemení.
 
 ## Výstupy OUT1–OUT12 (univerzálne)
 
@@ -103,15 +109,53 @@ do 24 V. Poradie na hornom konektore zľava doprava.
 Medzi OUT6 a OUT7 sú na konektore D7 (rezerva, len vstup) a D6 (PWM). Za
 OUT12 nasleduje BRAKE (D16).
 
+**Shield v4 (od 27. 10. 2026)** má v každej skupine 7. kanál (voľný kanál optočlena a 7.
+kanál TBD62003) a 9-pólové svorky. Vo firmvéri sú to bežné univerzálne výstupy (`$80`–`$93`
+až po 14); predvolene AUX5 na OUT14, OUT13 voľný. PWM na OUT13 nastavením `$38`: 0 vypnuté
+(predvolené, D6 je OUT13), 1 PWM, 2 PWM obrátené na pine (pre TTL vstup za výstupom, ktorý
+spína proti 0 V). Kým je PWM zapnuté, OUT13 nemôže mať funkciu (`error:42`).
+
+| Kanál | Pin | Port | Skupina / svorka | Poznámka |
+|---|---|---|---|---|
+| OUT13 | D6 | PD13 | OUT7–13 (J20) | pin PWM vretena / lasera (TIM4_CH2); bez PWM bežný výstup |
+| OUT14 | A2 | PB0 | OUT1–6+14 (J19) | vie aj PWM (TIM3_CH3) |
+
+Cez optočlen prejde PWM asi do 1 kHz. Výstup spína proti 0 V, takže vstup PWM s TTL
+úrovňou potrebuje vlastný pull-up a signál je na ňom obrátený.
+
+### Ktoré výstupy vedia hardvérové PWM
+
+Podľa tabuľky alternatívnych funkcií STM32H747, len s časovačmi, ktoré firmvér nepoužíva
+(TIM2/TIM5 = časovač mbed, TIM6/TIM7/TIM17 = kroky a sken vstupov, TIM8 = koliesko).
+Kanály toho istého časovača majú spoločnú frekvenciu.
+
+| Výstup | Pin | Port | Časovač |
+|---|---|---|---|
+| OUT1 | D13 | PH6 | TIM12_CH1 |
+| OUT2 | D12 | PJ11 | TIM1_CH2 |
+| OUT3 | D11 | PJ10 | TIM1_CH2N |
+| OUT4 | D10 | PK1 | TIM1_CH1 |
+| OUT5 | D9 | PB9 | TIM4_CH4 |
+| OUT6 | D8 | PB8 | TIM4_CH3, TIM16_CH1 |
+| OUT7 | D5 | PA7 | TIM3_CH2, TIM14_CH1 |
+| OUT8 | D4 | PJ8 | TIM1_CH3N |
+| OUT9 | D3 | PA2 | TIM15_CH1 |
+| OUT10 | D2 | PA3 | TIM15_CH2 |
+| OUT11 | D14 | PG14 | — (bez časovača) |
+| OUT12 | D15 | PC7 | TIM3_CH2 |
+| OUT13 | D6 | PD13 | TIM4_CH2 (dnešné PWM vretena) |
+| OUT14 | A2 | PB0 | TIM3_CH3 |
+| BRAKE | D16 | PH13 | — (len TIM8, ten má koliesko) |
+
 ## Rezerva — nepoužité
 
 | Piny | Poznámka |
 |---|---|
 | D23 (PG13) | 2×18, napr. ďalší vstup (D53 je od 14. 10. 2026 DRV PWR) |
 | D7 (PB4) | len ako vstup (po resete pull-up od JTAG) |
-| A0–A7 | analógové vstupy 0–3,3 V, napr. potenciometre override |
+| A0–A7 | analógové vstupy 0–3,3 V; na shielde v4 od 27. 10. 2026 A0/A1 potenciometre, A2 OUT14, A4–A6 tlačidlá panela (viď nižšie), voľné A3 a A7 |
 | A13 (PA5, DAC1) | druhý analógový výstup |
-| D17–D21 | sériové linky a I2C (Wire) |
+| D20–D21 | I2C (Wire) — D17–D19 od 22. 10. 2026 RS485 na shielde v4, viď nižšie |
 | D0/D1 | Serial1 |
 | CAN RX/TX (PB5/PB13), 6-pinový konektor SPI (D89–D91) | rezerva |
 | D54–D67 | 14 GPIO kamery — bez kamery voľné, dostupné cez konektor J3 na displeji (2×10 pri hornom okraji) dlhými kolíkmi zo shieldu; v J3 sú aj SDA1/SCL1 (nepoužiť), +3,3 V a GND. Od 14. 10. 2026 ručné koliesko (MPG), viď nižšie; D64–D67 ostávajú voľné |
@@ -135,6 +179,38 @@ displeji. Vstupy sú aktívne v nule (kontakt pendantu alebo optočlen shieldu
 | ×100 | D62 | PG11 | 7 | |
 | LED | D63 | PH11 | 8 | výstup |
 | rezerva | D64–D67 | PH10, PH9, PA1, PD4 | 5, 6, 1/3, 2/4 | |
+
+## RS485 k meniču (shield v4) — od 22. 10. 2026
+
+Izolované RS485 (ADM2587E) na shielde v4 na riadenie meniča vretena cez Modbus RTU.
+Vo firmvéri (`src/vfd.c`, `$33`–`$37`, viď README): Grbl je Modbus RTU master, D17
+riadi softvérovo — 1 tesne pred prvým štart bitom, 0 v prerušení po poslednom stop
+bite (TC); prijímač USART2 je počas vysielania vypnutý. Prvý profil: Delta (MS300,
+C2000, VFD-E).
+
+| Signál | Pin | Port | Poznámka |
+|---|---|---|---|
+| TX | D18 | PD5 | Serial2 (USART2_TX) |
+| RX | D19 | PD6 | Serial2 (USART2_RX) |
+| DE + ~RE | D17 | PI9 | 1 = vysielanie; pull-down 10k na shielde = príjem počas štartu |
+
+D17 je RX linky Serial3, ktorú nepoužívame (jej TX D16 je BRAKE).
+
+## Panel obsluhy (shield v4) — od 27. 10. 2026
+
+Priamo na piny A, bez izolácie (krátke vodiče k panelu pri riadiacej skrini), konektory
+JST XH. Vo firmvéri `src/panel.c`: tlačidlá `$39` (predvolene zapnuté), START a HOLD ako
+tie funkcie na vstupoch, STOP = riadené zastavenie (feed hold, potom reset s polohou, bez
+alarmu); potenciometre `$44` (A0), `$45` (A1): 0 nič, 1 korekcia posuvu, 2 otáčok,
+3 rýchloposuvu, predvolene vypnuté (zvyčajne `$44=1`, `$45=2`).
+
+| Signál | Pin | Port | Svorka | Zapojenie |
+|---|---|---|---|---|
+| potenciometer 1 | A0 | PC4 | J31 (XH 3) | +3V3 cez 100 Ω, bežec cez 1k, 100 nF na pine |
+| potenciometer 2 | A1 | PC5 | J32 (XH 3) | ako potenciometer 1 |
+| START | A4 | PC3 | J33 (XH 2) | tlačidlo k GND, pull-up 10k, 1k + 100 nF |
+| HOLD | A5 | PC2 | J34 (XH 2) | ako START |
+| STOP | A6 | PC0 | J35 (XH 2) | ako START; zastavenie programu, nie bezpečnostný STOP (D49) |
 
 ## Nepoužiť
 
@@ -187,5 +263,6 @@ displeji. Vstupy sú aktívne v nule (kontakt pendantu alebo optočlen shieldu
   (D16), PWM a DAC.
 - **Nastavenia:** priradenie funkcia → kanál `$60`–`$78` a `$80`–`$92`, masky NC/NO
   `$79` (vstupy, STOP a DRV PWR) a `$93` (výstupy), ďalšie časy a voľby `$48`–`$59`,
-  napájanie driverov `$94`, `$95` — viď PLAN.md, časti 1 a 2.
+  napájanie driverov `$94`, `$95` — viď PLAN.md, časti 1 a 2. Shield v4: menič cez RS485
+  `$33`–`$37`, PWM na OUT13 `$38`, panel obsluhy `$39`, `$44`, `$45`.
 - **README:** tabuľka zapojenia sa prepíše podľa tejto tabuľky.

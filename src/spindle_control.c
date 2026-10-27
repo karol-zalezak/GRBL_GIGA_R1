@@ -36,6 +36,10 @@
   PWM pin carries speed only and FWD/REV say whether and which way the spindle
   runs. In laser mode the run output stays on for the whole M3/M4 block and
   the stepper ISR modulates only the PWM, as upstream does with the PWM pin.
+
+  With $33 > 0 the same commands also go to the VFD over RS485 (vfd.h), and
+  its status takes the place of the at-speed relay (and adds to the fault
+  relay). Laser mode and $33 exclude each other.
 */
 
 #include "grbl.h"
@@ -55,7 +59,12 @@ static void spindle_at_speed_restart(uint8_t was_running);
 void spindle_init()
 {
   #ifdef VARIABLE_SPINDLE
-    uint32_t period = hal_spindle_pwm_init(SPINDLE_PWM_PIN, SPINDLE_PWM_FREQUENCY);
+    // $38: the PWM on OUT13 (D6), or OUT13 a plain output. The duty value is
+    // worked out either way - the DAC's 0-10 V follows it.
+    uint8_t pwm = (settings.spindle_pwm <= HAL_PWM_INVERTED) ? settings.spindle_pwm : HAL_PWM_OFF;
+    if (pwm) { io_out_reserve(OUT_PWM_CHANNEL, true); }
+    uint32_t period = hal_spindle_pwm_init(SPINDLE_PWM_PIN, SPINDLE_PWM_FREQUENCY, pwm);
+    if (!pwm) { io_out_reserve(OUT_PWM_CHANNEL, false); }
     if (period == 0) { period = 1; }               // PWM unavailable; degrade to on/off.
     if (period > 0xFFFFUL) { period = 0xFFFFUL; }
     spindle_pwm_max_value = (uint16_t)period;
@@ -115,6 +124,7 @@ void spindle_stop()
   outputs_set(OUTPUT_SPINDLE_FWD, false);
   outputs_set(OUTPUT_SPINDLE_REV, false);
   outputs_spindle_running(false);
+  vfd_spindle(VFD_STOP, 0.0f);
   spindle_at_speed_restart(false);   // off: nothing to wait for or watch
 }
 
@@ -128,6 +138,7 @@ void spindle_stop()
     // through spindle_sync() and waits; an override only re-arms the watch).
     if ((pwm_value != pwm_current) && (outputs_get(OUTPUT_SPINDLE_FWD) || outputs_get(OUTPUT_SPINDLE_REV))) {
       pwm_current = pwm_value;
+      vfd_speed(sys.spindle_speed);   // the override while cutting: the drive follows
       spindle_at_speed_restart(true);
     }
     pwm_current = pwm_value;
@@ -270,6 +281,11 @@ void spindle_stop()
     #ifndef SPINDLE_ENABLE_OFF_WITH_ZERO_SPEED
       outputs_set(spindle_dir_ccw ? OUTPUT_SPINDLE_REV : OUTPUT_SPINDLE_FWD, true);
     #endif
+    #ifdef VARIABLE_SPINDLE
+      vfd_spindle(spindle_dir_ccw ? VFD_REV : VFD_FWD, sys.spindle_speed);
+    #else
+      vfd_spindle(spindle_dir_ccw ? VFD_REV : VFD_FWD, settings.rpm_max);
+    #endif
     outputs_spindle_running(true);
     if (!was_running) {        // started, or reversed: spin up from scratch
       spindle_at_speed_restart(false);
@@ -298,6 +314,11 @@ void spindle_stop()
 // cannot restart it), motion stops with a feed hold, and once the machine
 // stands, ALARM:19 - with the position kept. $X and $H are refused while the
 // input stays active; a reset or $X pulses the VFD reset output ($92).
+//
+// VFD over RS485 ($33 > 0): at speed comes from the drive's status instead of
+// the relay, a fault it reports counts like the fault input. A drive that does
+// not answer, refuses or does not follow (vfd_trouble()) is handled like a
+// fault, with ALARM:23 and $X / $H refused (error:51) while it lasts.
 
 #define SPINDLE_INPUT_DEBOUNCE_SCANS  100   // 10 ms at the 10 kHz scan
 // After a speed change of a spindle that is already running, the at-speed
@@ -318,12 +339,13 @@ static volatile uint32_t as_settle_ms = 0;
 static volatile uint8_t as_sync_wait = 0; // the parser is waiting (spindle_wait_at_speed)
 static volatile uint8_t fault_state = 0;  // 1 fault seen, alarm pending; 2 alarm raised
 static volatile uint8_t loss_state = 0;   // 1 at-speed lost, reaction pending; 2 done
+static uint8_t comm_state = 0;            // VFD over RS485: 1 trouble, alarm pending; 2 alarm raised
 
 
 // At-speed waiting and monitoring apply: an input is assigned, $52 > 0, no laser.
 static uint8_t spindle_at_speed_used()
 {
-  if (!io_in_channel(IN_FN_AT_SPEED) || (settings.at_speed_timeout_ms == 0)) { return(false); }
+  if (!(io_in_channel(IN_FN_AT_SPEED) || vfd_enabled()) || (settings.at_speed_timeout_ms == 0)) { return(false); }
   #ifdef VARIABLE_SPINDLE
     if (bit_istrue(settings.flags,BITFLAG_LASER_MODE)) { return(false); }
   #endif
@@ -362,7 +384,7 @@ uint8_t spindle_at_speed() { return (sp_in_stable & 1) ? true : false; }
 
 uint8_t spindle_status()
 {
-  if (fault_state || spindle_fault_active()) { return(SPINDLE_STATUS_FAULT); }
+  if (fault_state || spindle_fault_active() || comm_state || vfd_trouble()) { return(SPINDLE_STATUS_FAULT); }
   if (loss_state == 1) { return(SPINDLE_STATUS_LOST); }
   switch (as_state) {
     case AS_WAIT: return(SPINDLE_STATUS_SPINUP);
@@ -376,6 +398,7 @@ uint8_t spindle_status()
 void spindle_scan(uint32_t fn)
 {
   uint8_t in = ((fn >> IN_FN_AT_SPEED) & 1) | (((fn >> IN_FN_SPIN_FAULT) & 1) << 1);
+  if (vfd_enabled()) { in = (in & 2) | vfd_at_speed() | (vfd_fault() << 1); }
   if (in != sp_in_candidate) {
     sp_in_candidate = in;
     sp_in_settle = 0;
@@ -428,6 +451,22 @@ void spindle_service()
     return;
   }
   if ((fault_state == 2) && (sys.state != STATE_ALARM)) { fault_state = 0; }
+
+  // The VFD over RS485 cannot be trusted with the spindle: off (as far as
+  // it can be told), controlled stop, ALARM:23.
+  if (vfd_trouble() && !comm_state && !fault_state && (sys.state != STATE_ALARM)) {
+    comm_state = 1;
+    spindle_stop();
+    loss_state = 0;     // the silent drive also lost "at speed": one alarm, this one
+    if (sys.state & (STATE_CYCLE | STATE_JOG)) { system_set_exec_state_flag(EXEC_FEED_HOLD); }
+  }
+  if (comm_state == 1) {
+    if (spindle_machine_moving()) { return; }
+    comm_state = 2;
+    spindle_alarm_stopped(EXEC_ALARM_SPINDLE_COMM);
+    return;
+  }
+  if ((comm_state == 2) && (sys.state != STATE_ALARM)) { comm_state = 0; }
 
   // Speed changed by an override: the relay must come back within $52.
   if ((as_state == AS_WAIT) && !as_sync_wait &&
@@ -499,6 +538,7 @@ uint8_t spindle_collet_set(uint8_t open)
   if (outputs_get(OUTPUT_SPINDLE_FWD) || outputs_get(OUTPUT_SPINDLE_REV)) { return(STATUS_COLLET_INTERLOCK); }
   if (outputs_spindle_off_ms() < settings.spindle_rundown_ms) { return(STATUS_COLLET_INTERLOCK); }
   if (io_in_channel(IN_FN_AT_SPEED) && spindle_at_speed()) { return(STATUS_COLLET_INTERLOCK); }
+  if (vfd_turning()) { return(STATUS_COLLET_INTERLOCK); }   // the drive still has output
   outputs_set(OUTPUT_COLLET, true);
   return(STATUS_OK);
 }

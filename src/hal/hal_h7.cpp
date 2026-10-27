@@ -473,17 +473,24 @@ extern "C" bool hal_estop_init(uint8_t pin, void (*isr)(void))
 // ---------------------------------------------------------------------------
 // Spindle PWM: D6 is PD13, TIM4 channel 2 on alternate function 2.
 // ---------------------------------------------------------------------------
+//
+// With the PWM off ($38=0) D6 is the output channel OUT13 and TIM4 stands;
+// the period is still worked out, because the DAC's level is computed from
+// the same duty value.
 
 static uint32_t spindle_pwm_period = 0;
+static bool spindle_pwm_on = false;
 static bool dac_ready = false;
 static uint8_t  spindle_pwm_pin = 0xFF;
 static uint32_t spindle_pwm_freq = 0;
+static uint8_t  spindle_pwm_mode = 0xFF;
 
-extern "C" uint32_t hal_spindle_pwm_init(uint8_t pin, uint32_t frequency_hz)
+extern "C" uint32_t hal_spindle_pwm_init(uint8_t pin, uint32_t frequency_hz, uint8_t mode)
 {
   // spindle_init() runs on every reset and on every $30/$31 change, so make
   // repeat calls with unchanged parameters free.
-  if (spindle_pwm_period && pin == spindle_pwm_pin && frequency_hz == spindle_pwm_freq) {
+  if (spindle_pwm_period && pin == spindle_pwm_pin && frequency_hz == spindle_pwm_freq &&
+      mode == spindle_pwm_mode) {
     return spindle_pwm_period;
   }
   if (frequency_hz == 0 || digitalPinToPinName(pin) != PD_13) { return 0; }   // only D6 is wired to TIM4_CH2
@@ -494,6 +501,22 @@ extern "C" uint32_t hal_spindle_pwm_init(uint8_t pin, uint32_t frequency_hz)
   period /= (psc + 1);
   if (period < 2) { period = 2; }
 
+  if (mode == HAL_PWM_OFF) {
+    // Hand the pin back as a plain output, low (io.c puts OUT13's level on it).
+    if (spindle_pwm_on) {
+      hal_pin_write(pin, false);
+      pin_configure(pin, 1, 0, 0);
+      TIM4->CR1 = 0;
+      TIM4->CCER = 0;
+    }
+    spindle_pwm_on = false;
+    spindle_pwm_period = period;
+    spindle_pwm_pin = pin;
+    spindle_pwm_freq = frequency_hz;
+    spindle_pwm_mode = mode;
+    return period;
+  }
+
   RCC->APB1LENR |= RCC_APB1LENR_TIM4EN;
   (void)RCC->APB1LENR;
   TIM4->CR1  = 0;
@@ -503,22 +526,26 @@ extern "C" uint32_t hal_spindle_pwm_init(uint8_t pin, uint32_t frequency_hz)
   TIM4->CCR2 = 0;
   TIM4->CCMR1 = (TIM4->CCMR1 & ~(TIM_CCMR1_OC2M | TIM_CCMR1_CC2S))
               | (6U << TIM_CCMR1_OC2M_Pos) | TIM_CCMR1_OC2PE;   // PWM mode 1, preloaded
-  TIM4->CCER = TIM_CCER_CC2E;
+  // Inverted: active low, so the pin is high at duty 0 - right for a TTL PWM
+  // input behind an output that sinks to 0 V when the pin is high.
+  TIM4->CCER = TIM_CCER_CC2E | ((mode == HAL_PWM_INVERTED) ? TIM_CCER_CC2P : 0);
   TIM4->CR1  = TIM_CR1_ARPE | TIM_CR1_URS;
   TIM4->EGR  = TIM_EGR_UG;
   TIM4->CR1 |= TIM_CR1_CEN;
 
   pin_configure(pin, 2, 0, 2);   // AF2 = TIM4
 
+  spindle_pwm_on = true;
   spindle_pwm_period = period;
   spindle_pwm_pin = pin;
   spindle_pwm_freq = frequency_hz;
+  spindle_pwm_mode = mode;
   return period;
 }
 
 extern "C" void hal_spindle_pwm_set(uint32_t duty_counts)
 {
-  if (!spindle_pwm_period) { return; }
+  if (!spindle_pwm_on) { return; }
   if (duty_counts > spindle_pwm_period) { duty_counts = spindle_pwm_period; }
   TIM4->CCR2 = duty_counts;
 }
@@ -527,7 +554,7 @@ extern "C" void hal_spindle_pwm_set(uint32_t duty_counts)
 // read back from TIM4, and the DAC output register (0-4095).
 extern "C" uint32_t hal_spindle_pwm_readback(void)
 {
-  if (!spindle_pwm_period || !(TIM4->CR1 & TIM_CR1_CEN)) { return 0xFFFF; }
+  if (!spindle_pwm_on || !(TIM4->CR1 & TIM_CR1_CEN)) { return 0xFFFF; }
   return (uint32_t)(((uint64_t)TIM4->CCR2 * 1000ULL) / (TIM4->ARR + 1));
 }
 
@@ -538,7 +565,7 @@ extern "C" uint32_t hal_spindle_dac_readback(void)
 
 extern "C" void hal_spindle_pwm_off(void)
 {
-  if (!spindle_pwm_period) { return; }
+  if (!spindle_pwm_on) { return; }
   TIM4->CCR2 = 0;
 }
 
@@ -561,6 +588,18 @@ extern "C" void hal_spindle_dac_set(uint32_t value_12bit)
   if (!dac_ready) { return; }
   if (value_12bit > 4095) { value_12bit = 4095; }
   DAC1->DHR12R1 = value_12bit;
+}
+
+
+// Analog inputs (the operator panel's potentiometers on A0/A1, ADC1) through
+// the core's analogRead(): mbed sets up the ADC and its kernel clock. A
+// conversion takes some microseconds; main loop only.
+extern "C" uint16_t hal_analog_read(uint8_t pin)
+{
+  static bool resolution_set = false;
+  if (!resolution_set) { analogReadResolution(12); resolution_set = true; }
+  int v = analogRead(pin);
+  return (uint16_t)((v < 0) ? 0 : ((v > 4095) ? 4095 : v));
 }
 
 
@@ -595,6 +634,209 @@ extern "C" void hal_mpg_test_levels(uint8_t pin_a, uint8_t pin_b, bool a_high, b
   pin_configure(pin_a, 2, a_high ? 1 : 2, 3);
   pin_configure(pin_b, 2, b_high ? 1 : 2, 3);
 }
+
+
+// ---------------------------------------------------------------------------
+// RS485 to the spindle VFD: USART2 on D18 (PD5 = TX) and D19 (PD6 = RX),
+// alternate function 7, the transceiver's DE + ~RE on a GPIO (D17).
+// ---------------------------------------------------------------------------
+//
+// The interrupt sits at OTHER_IRQ_PRIO, below the Grbl timers; with the
+// 16-byte FIFOs on, the microseconds mbed's critical sections or a stepper
+// interrupt hold it back cost nothing. A Modbus request (8 bytes) fits the
+// transmit FIFO whole.
+
+static volatile uint8_t rs_tx_buf[HAL_RS485_FRAME_MAX];
+static volatile uint8_t rs_tx_len = 0, rs_tx_pos = 0;
+static volatile bool rs_sending = false;
+static volatile uint8_t rs_rx_buf[HAL_RS485_FRAME_MAX];
+static volatile uint8_t rs_rx_len = 0;
+static volatile bool rs_rx_done = false;     // a frame is complete and waits to be read
+static volatile bool rs_rx_bad = false;      // ...and something in it went wrong
+static volatile uint32_t rs_last_cycles = 0; // DWT at the last byte either way
+static uint32_t rs_clock = 0, rs_baud = 0;
+static uint8_t rs_format = 0xFF, rs_de_pin = 0xFF;
+
+#define RS485_RX_ERRORS  (USART_ISR_ORE | USART_ISR_FE | USART_ISR_NE | USART_ISR_PE)
+#define RS485_RX_CLEAR   (USART_ICR_ORECF | USART_ICR_FECF | USART_ICR_NECF | USART_ICR_PECF)
+
+// The USART2 kernel clock. Its source is shared with USART3, UART4/5/7/8,
+// so it is only read, never changed (mbed leaves it at PCLK1, 120 MHz).
+static uint32_t rs485_kernel_clock(void)
+{
+  switch (RCC->D2CCIP2R & RCC_D2CCIP2R_USART28SEL) {
+    case 0: return HAL_RCC_GetPCLK1Freq();
+    case 1: { PLL2_ClocksTypeDef c; HAL_RCCEx_GetPLL2ClockFreq(&c); return c.PLL2_Q_Frequency; }
+    case 2: { PLL3_ClocksTypeDef c; HAL_RCCEx_GetPLL3ClockFreq(&c); return c.PLL3_Q_Frequency; }
+    case 3: return HSI_VALUE >> ((RCC->CR & RCC_CR_HSIDIV) >> RCC_CR_HSIDIV_Pos);
+    case 4: return CSI_VALUE;
+    case 5: return LSE_VALUE;
+  }
+  return 0;
+}
+
+static void rs485_isr(void)
+{
+  // Receive: drain the FIFO. The error flags belong to the byte at its head.
+  uint32_t s;
+  while ((s = USART2->ISR) & USART_ISR_RXNE_RXFNE) {
+    if (s & RS485_RX_ERRORS) {
+      USART2->ICR = RS485_RX_CLEAR;
+      rs_rx_bad = true;
+    }
+    uint8_t b = (uint8_t)USART2->RDR;
+    if (!rs_rx_done) {
+      if (rs_rx_len < HAL_RS485_FRAME_MAX) { rs_rx_buf[rs_rx_len++] = b; } else { rs_rx_bad = true; }
+    }
+    rs_last_cycles = DWT->CYCCNT;
+  }
+  if (s & USART_ISR_ORE) { USART2->ICR = USART_ICR_ORECF; rs_rx_bad = true; }
+  // 3.5 characters of silence: the frame is complete.
+  if (s & USART_ISR_RTOF) {
+    USART2->ICR = USART_ICR_RTOCF;
+    if (rs_rx_len) { rs_rx_done = true; }
+  }
+
+  // Transmit: keep the FIFO filled; after the last byte, wait for TC.
+  uint32_t cr1 = USART2->CR1;
+  if (cr1 & USART_CR1_TXEIE_TXFNFIE) {
+    while ((rs_tx_pos < rs_tx_len) && (USART2->ISR & USART_ISR_TXE_TXFNF)) {
+      USART2->TDR = rs_tx_buf[rs_tx_pos++];
+    }
+    if (rs_tx_pos >= rs_tx_len) { USART2->CR1 = (cr1 & ~USART_CR1_TXEIE_TXFNFIE) | USART_CR1_TCIE; }
+  } else if ((cr1 & USART_CR1_TCIE) && (USART2->ISR & USART_ISR_TC)) {
+    // Last stop bit out: the bus belongs to the VFD again. What the receiver
+    // might have picked up meanwhile is thrown away.
+    hal_pin_write(rs_de_pin, false);
+    USART2->CR1 = cr1 & ~USART_CR1_TCIE;
+    USART2->ICR = USART_ICR_TCCF | USART_ICR_RTOCF | RS485_RX_CLEAR;
+    USART2->RQR = USART_RQR_RXFRQ;
+    rs_rx_len = 0;
+    rs_rx_done = false;
+    rs_rx_bad = false;
+    USART2->CR1 |= USART_CR1_RE;
+    rs_last_cycles = DWT->CYCCNT;
+    rs_sending = false;
+  }
+}
+
+extern "C" void hal_rs485_stop(void)
+{
+  if (!rs_clock) { return; }
+  NVIC_DisableIRQ(USART2_IRQn);
+  USART2->CR1 = 0;
+  hal_pin_write(rs_de_pin, false);
+  rs_clock = 0;
+  rs_sending = false;
+  rs_rx_len = 0;
+  rs_rx_done = false;
+}
+
+extern "C" bool hal_rs485_init(uint32_t baud, uint8_t format, uint8_t de_pin)
+{
+  if (rs_clock && (baud == rs_baud) && (format == rs_format) && (de_pin == rs_de_pin)) { return true; }
+  hal_rs485_stop();
+  if ((baud == 0) || (format >= HAL_RS485_FORMATS)) { return false; }
+
+  // Oversampling by 16: BRR = clock / prescaler / baud, 16 to 65535.
+  static const uint16_t presc_div[12] = { 1, 2, 4, 6, 8, 10, 12, 16, 32, 64, 128, 256 };
+  uint32_t clk = rs485_kernel_clock();
+  uint32_t p, div = 0;
+  for (p = 0; p < 12; p++) {
+    div = (clk / presc_div[p] + baud / 2) / baud;
+    if (div <= 0xFFFFUL) { break; }
+  }
+  if ((p == 12) || (div < 16)) { return false; }
+
+  bool parity = (format == 2) || (format == 3) || (format == 4) || (format == 5);
+  bool odd = (format == 3) || (format == 5);
+  bool two_stop = (format == 1) || (format == 4) || (format == 5);
+  uint32_t char_bits = 10 + (parity ? 1 : 0) + (two_stop ? 1 : 0);
+  // End of frame after 3.5 characters, or the fixed 1.75 ms Modbus asks for
+  // above 19200 baud. RTO counts bit times after the last stop bit.
+  uint32_t rto = (baud <= 19200) ? (35 * char_bits + 9) / 10
+                                 : (uint32_t)((1750ULL * baud + 999999ULL) / 1000000ULL);
+
+  RCC->APB1LENR |= RCC_APB1LENR_USART2EN;
+  (void)RCC->APB1LENR;
+  USART2->CR1 = 0;                       // UE off: word length, parity, FIFO only change now
+  USART2->PRESC = p;
+  USART2->BRR = div;
+  USART2->CR2 = (two_stop ? USART_CR2_STOP_1 : 0) | USART_CR2_RTOEN;
+  USART2->CR3 = 0;
+  USART2->RTOR = rto;
+  uint32_t cr1 = USART_CR1_FIFOEN | USART_CR1_TE | USART_CR1_RE |
+                 USART_CR1_RXNEIE_RXFNEIE | USART_CR1_RTOIE;
+  if (parity) { cr1 |= USART_CR1_PCE | USART_CR1_M0 | (odd ? USART_CR1_PS : 0); }   // 8 data + parity = 9 bits
+  USART2->CR1 = cr1;
+
+  // Driver enable low (receive) before the pin becomes an output, so the
+  // shield's pull-down hands over without a glitch.
+  hal_pin_write(de_pin, false);
+  pin_configure(de_pin, 1, 0, 0);
+  pin_configure(RS485_TX_PIN, 2, 1, 7);  // pulled up while UE is off
+  pin_configure(RS485_RX_PIN, 2, 1, 7);  // pulled up while the transceiver's ~RE is high
+
+  USART2->ICR = 0xFFFFFFFFUL;
+  USART2->CR1 = cr1 | USART_CR1_UE;
+  rs_sending = false;
+  rs_rx_len = 0;
+  rs_rx_done = false;
+  rs_rx_bad = false;
+  rs_last_cycles = DWT->CYCCNT;
+  rs_clock = clk;
+  rs_baud = baud;
+  rs_format = format;
+  rs_de_pin = de_pin;
+  irq_attach(USART2_IRQn, rs485_isr, OTHER_IRQ_PRIO);
+  return true;
+}
+
+extern "C" void hal_rs485_send(const uint8_t *frame, uint8_t len)
+{
+  if (!rs_clock || !len) { return; }
+  if (len > HAL_RS485_FRAME_MAX) { len = HAL_RS485_FRAME_MAX; }
+  NVIC_DisableIRQ(USART2_IRQn);
+  USART2->CR1 &= ~(USART_CR1_RE | USART_CR1_TCIE | USART_CR1_TXEIE_TXFNFIE);
+  for (uint8_t i = 0; i < len; i++) { rs_tx_buf[i] = frame[i]; }
+  rs_tx_len = len;
+  rs_tx_pos = 0;
+  rs_rx_len = 0;
+  rs_rx_done = false;
+  rs_rx_bad = false;
+  rs_sending = true;
+  hal_pin_write(rs_de_pin, true);
+  hal_delay_us(RS485_DE_SETUP_US);      // driver on (through the isolator) before the start bit
+  USART2->ICR = USART_ICR_TCCF;
+  USART2->CR1 |= USART_CR1_TXEIE_TXFNFIE;
+  NVIC_EnableIRQ(USART2_IRQn);
+}
+
+extern "C" bool hal_rs485_sending(void) { return rs_sending; }
+
+extern "C" int hal_rs485_frame(uint8_t *buf, uint8_t max)
+{
+  if (!rs_clock || !rs_rx_done) { return 0; }
+  NVIC_DisableIRQ(USART2_IRQn);
+  int n = rs_rx_len;
+  bool bad = rs_rx_bad;
+  if (n > max) { n = max; bad = true; }
+  for (int i = 0; i < n; i++) { buf[i] = rs_rx_buf[i]; }
+  rs_rx_len = 0;
+  rs_rx_done = false;
+  rs_rx_bad = false;
+  NVIC_EnableIRQ(USART2_IRQn);
+  return bad ? -1 : n;
+}
+
+extern "C" uint32_t hal_rs485_quiet_us(void)
+{
+  if (rs_sending) { return 0; }
+  uint32_t us = (DWT->CYCCNT - rs_last_cycles) / hal_cycles_per_us();
+  return (us > 1000000UL) ? 1000000UL : us;
+}
+
+extern "C" uint32_t hal_rs485_clock_hz(void) { return rs_clock; }
 
 
 // ---------------------------------------------------------------------------

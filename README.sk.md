@@ -23,7 +23,7 @@ nad hardvérovou vrstvou je ten istý kód, tu rozšírený na štyri osi.
 * **Štyri osi, X Y Z A.** Motor A je podľa jedného nastavenia samostatná
   rotačná os, samostatná lineárna os alebo **druhý motor osi X alebo Y**
   s automatickým vyrovnaním portálu pri homingu (`$42`).
-* **Dvadsať vstupov a dvanásť výstupov, všetky univerzálne.** Každá funkcia je
+* **Dvadsať vstupov a štrnásť výstupov, všetky univerzálne.** Každá funkcia je
   nastavenie, ktoré určuje jej kanál (`$60`–`$93`): koncové spínače na oboch
   koncoch každej osi (X−, X+, …), alarmy serv (`ALARM:17`), sonda, tlačidlá,
   dvere, relé meniča „otáčky dosiahnuté“ a „porucha“; vreteno FWD/REV,
@@ -130,10 +130,10 @@ a úvodný riadok hlásia `display=0`.
 ## Zapojenie
 
 Tabuľka pinov je tá schválená pre shield periférií
-([PINOUT.md](PINOUT.md), v2): každý blok leží na jednom úseku konektorov
-v poradí svojich svoriek. Funkcie v zátvorkách sú predvolené — dvadsať
-vstupov a dvanásť výstupov sú univerzálne kanály, ktorých funkcie sú
-nastavenia (pozri nižšie).
+([PINOUT.md](PINOUT.md), v2, s doplnkami shieldu v4): každý blok leží na
+jednom úseku konektorov v poradí svojich svoriek. Funkcie v zátvorkách sú
+predvolené, tie zo shieldu v4 — dvadsať vstupov a štrnásť výstupov sú
+univerzálne kanály, ktorých funkcie sú nastavenia (pozri nižšie).
 
 Konektor 2×18 D22–D53:
 
@@ -147,14 +147,14 @@ Konektor 2×18 D22–D53:
 | D33 | krok Z (PJ4) | | D32 | **IN6** (koncák Z+) |
 | D35 | smer Z (PJ5) | | D34 | **IN7** (koncák A−) |
 | D37 | krok A (PJ6) | | D36 | **IN8** (koncák A+) |
-| D39 | smer A (PI14) | | D38 | **IN9** (alarm serva X) |
-| D41 | enable driverov | | D40 | **IN10** (alarm serva Y) |
-| D43 | **IN17** (bezpečnostné dvere) | | D42 | **IN11** (alarm serva Z) |
-| D45 | **IN18** (otáčky vretena dosiahnuté) | | D44 | **IN12** (alarm serva A) |
-| D47 | **IN19** (porucha vretena) | | D46 | **IN13** (sonda) |
-| D49 | **STOP** — bezpečnostné relé, EXTI4 (pevné) | | D48 | **IN14** (tlačidlo reset) |
-| D51 | **IN20** (voľný) | | D50 | **IN15** (tlačidlo hold) |
-| D53 | **DRV PWR** — napájanie driverov prítomné (pevné) | | D52 | **IN16** (tlačidlo štart) |
+| D39 | smer A (PI14) | | D38 | **IN9** (sonda) |
+| D41 | enable driverov | | D40 | **IN10** (bezpečnostné dvere) |
+| D43 | **IN17** (alarm serva X) | | D42 | **IN11** (otáčky vretena dosiahnuté) |
+| D45 | **IN18** (alarm serva Y) | | D44 | **IN12** (porucha vretena) |
+| D47 | **IN19** (alarm serva Z) | | D46 | **IN13** (tlačidlo reset) |
+| D49 | **STOP** — bezpečnostné relé, EXTI4 (pevné) | | D48 | **IN14** (tlačidlo hold) |
+| D51 | **IN20** (alarm serva A) | | D50 | **IN15** (tlačidlo štart) |
+| D53 | **DRV PWR** — napájanie driverov prítomné (pevné) | | D52 | **IN16** (voľný) |
 
 Horný konektor a analóg:
 
@@ -166,8 +166,9 @@ Horný konektor a analóg:
 | D10 | **OUT4** (chladenie mist) | | D2 | **OUT10** (reset serv) |
 | D9 | **OUT5** (AUX0, odsávanie) | | D14 | **OUT11** (reset meniča) |
 | D8 | **OUT6** (AUX1) | | D15 | **OUT12** (AUX4) |
-| D6 | PWM vretena (TIM4_CH2, 1 kHz, 60000 krokov) | | D16 | **BRAKE** — brzda Z (pevné) |
-| A12 (DAC0) | otáčky vretena 0–3,3 V (0–10 V za shieldom) | | D7 | rezerva (len vstup: pull-up JTAG) |
+| D6 | **OUT13** — alebo PWM vretena (TIM4_CH2, 1 kHz, 60000 krokov) s `$38` | | D16 | **BRAKE** — brzda Z (pevné) |
+| A2 | **OUT14** (AUX5) | | D7 | rezerva (len vstup: pull-up JTAG) |
+| A12 (DAC0) | otáčky vretena 0–3,3 V (0–10 V za shieldom) | | A0, A1 / A4–A6 | panel obsluhy: potenciometre / START, HOLD, STOP |
 
 **GIGA je 3,3 V doska a jej piny nie sú pre signály 5 V ani 24 V.** Shield
 (PINOUT.md) dáva každý vstup za optočlen a každý výstup za optočlen
@@ -176,7 +177,8 @@ pull-upy a sú **aktívne v nule** — spínač alebo výstup s otvoreným kolek
 na GND — a výstupy dávajú 3,3 V.
 
 Piny D68–D75 (konektor displeja), SDA1/SCL1 vedľa AREF (zbernica dotyku a LED
-displeja), D0/D1 a D17–D21 zostávajú voľné. D54–D67 (piny kamery) sú tiež
+displeja), D0/D1 a D20/D21 zostávajú voľné; D17–D19 sú port RS485 k meniču
+vretena (shield v4, `$33`, viď nižšie). D54–D67 (piny kamery) sú tiež
 voľné a na shield sa dostanú cez konektor kamery J3 na Display Shielde
 (PLAN.md, časť 5).
 
@@ -261,27 +263,31 @@ Oba remeňové motory potrebujú rovnaké `$100`/`$101`.
 
 ## Vstupy a výstupy
 
-Shield periférií má **dvadsať vstupov IN1–IN20** a **dvanásť výstupov
-OUT1–OUT12**. Žiaden nemá pevnú úlohu: každá funkcia je nastavenie s číslom
+Shield periférií má **dvadsať vstupov IN1–IN20** a **štrnásť výstupov
+OUT1–OUT14**. Žiaden nemá pevnú úlohu: každá funkcia je nastavenie s číslom
 kanála, na ktorom je (0 = nepoužitá), takže zapojenie sa mení v `$$`, nie
 v zdrojovom kóde. Pevné sú len krok/smer/enable, centrálne STOP (D49), vstup
-napájania driverov (D53), brzda Z (D16), PWM (D6) a DAC (A12).
+napájania driverov (D53), brzda Z (D16), DAC (A12) a panel obsluhy; OUT13
+(D6) je pri `$38` > 0 namiesto toho PWM vretena. Predvolené hodnoty sú tie
+zo shieldu v4, ktorého alarmy serv prichádzajú na IN17–IN20 pri ich
+konektoroch DE-15; platia pre nové nastavenia (`$RST=$`) — aktualizácia
+ponechá priradenie, ktoré doska už má.
 
 | Nastavenie | Funkcia vstupu | Predvolene | `Pn:` |
 |---|---|---|---|
 | `$60`–`$67` | koncové spínače X−, X+, Y−, Y+, Z−, Z+, A−, A+ | IN1–IN8 | `X` `Y` `Z` `A` |
-| `$68`–`$71` | alarmy serv X, Y, Z, A | IN9–IN12 | `M` |
-| `$72` | sonda (`G38.x`) | IN13 | `P` |
-| `$73`–`$76` | tlačidlá reset, feed hold, cycle start, bezpečnostné dvere | IN14–IN17 | `R` `H` `S` `D` |
-| `$77` | otáčky vretena dosiahnuté (relé meniča) | IN18 | |
-| `$78` | porucha vretena (relé meniča) | IN19 | |
+| `$68`–`$71` | alarmy serv X, Y, Z, A | IN17–IN20 | `M` |
+| `$72` | sonda (`G38.x`) | IN9 | `P` |
+| `$73`–`$76` | tlačidlá reset, feed hold, cycle start, bezpečnostné dvere | IN13, IN14, IN15, IN10 | `R` `H` `S` `D` |
+| `$77` | otáčky vretena dosiahnuté (relé meniča) | IN11 | |
+| `$78` | porucha vretena (relé meniča) | IN12 | |
 | `$79` | **maska NC**: bit n−1 = INn, bit 20 = STOP, bit 21 = DRV PWR | 0 (všetky NO) | |
 
 | Nastavenie | Funkcia výstupu | Predvolene |
 |---|---|---|
 | `$80`, `$81` | vreteno **FWD** (`M3`), **REV** (`M4`) — nikdy obe naraz | OUT1, OUT2 |
 | `$82`, `$83` | chladenie flood `M8`, mist `M7` | OUT3, OUT4 |
-| `$84`–`$89` | AUX0–AUX5 (`M62`–`M65 P0`–`P5`) | OUT5–OUT8, OUT12, žiaden |
+| `$84`–`$89` | AUX0–AUX5 (`M62`–`M65 P0`–`P5`) | OUT5–OUT8, OUT12, OUT14 |
 | `$90` | otvorenie klieštiny | OUT9 |
 | `$91` | reset alarmu serv (impulz) | OUT10 |
 | `$92` | reset poruchy meniča (impulz) | OUT11 |
@@ -323,7 +329,10 @@ serv**. Vstupy sa odrušujú 2 ms, koncové spínače 0,3 ms, tlačidlá 10 ms.
 **Výstupy.** `M2`/`M30` a reset vypnú všetky výstupy. `$46` určuje výstupy
 AUX, ktoré sa zapnú vždy, keď beží vreteno (predvolene AUX0, odsávanie).
 `$93` invertuje výstupy na pine; displej a M-kódy ďalej ukazujú logický stav.
-Zmena priradenia funkciu najprv vypne.
+Zmena priradenia funkciu najprv vypne. OUT13 (D6) a OUT14 (A2) sú výstupy
+ako ostatné — OUT13 len pri `$38=0`: so zapnutým PWM patrí D6 časovaču
+a na OUT13 sa nedá dať žiadna funkcia (`error:42`; `$38` > 0 sa odmietne,
+kým tam nejaká je).
 
 ### Centrálne STOP (`$57`, D49)
 
@@ -470,6 +479,129 @@ bez čakania. Predvolene 200/100/200 ms, skôr dlhšie, kým sa brzda nezmeria.
   ako `M0` s `[MSG:Tool change T<n>, cycle start to resume]`. Nástroj vymeníš
   tlačidlom COLLET, potom START. `$58=0`: odmietne sa ako v pôvodnom Grbl.
 
+### Panel obsluhy (`$39`, `$44`, `$45`, A0/A1, A4–A6)
+
+Shield v4 privádza malý panel priamo na analógový konektor GIGA — bez
+izolácie, krátke vodiče k riadiacej skrini, konektory JST XH:
+
+| Signál | Pin | Zapojenie |
+|---|---|---|
+| potenciometer 1 | A0 (PC4) | 10 k z +3V3 cez 100 Ω, bežec cez 1 k, 100 nF na pine |
+| potenciometer 2 | A1 (PC5) | ako potenciometer 1 |
+| START | A4 (PC3) | tlačidlo k GND, pull-up 10 k, 1 k + 100 nF |
+| HOLD | A5 (PC2) | ako START |
+| STOP | A6 (PC0) | ako START |
+
+* **Tlačidlá** (`$39=1`, predvolené — vnútorné pull-upy držia nezapojené piny
+  pustené). **START** a **HOLD** sú cycle start a feed hold, presne ako tie
+  funkcie na vstupnom kanáli (rovnaké odrušenie 10 ms, `Pn:S` / `Pn:H`).
+  **STOP** ukončí program riadeným zastavením: feed hold a keď stroj stojí,
+  Grbl sa resetuje so strojom vyhláseným za zastavený — poloha zostane, žiaden
+  alarm, vreteno a chladenie vypnuté, `[MSG:Panel STOP]`. Keď stroj stojí,
+  resetuje hneď (vreteno vypne); program z USB kľúča zastaví ako jeho vlastný
+  STOP; homing, ktorý nepozná pozastavenie, sa resetuje. **Nie je to
+  bezpečnostné STOP na D49.**
+* **Potenciometre** (`$44` pre A0, `$45` pre A1; 0 nič, 1 korekcia posuvu,
+  2 korekcia otáčok, 3 korekcia rýchloposuvu; predvolene 0 — zvyčajne
+  `$44=1`, `$45=2`). Posuv a otáčky: 10–100 % na ľavej polovici, **100 %**
+  v pásme ±2,5 % okolo stredu, 100–200 % na pravej polovici; rýchloposuv:
+  tretiny, 25 / 50 / 100 %. Potenciometer nastaví svoju korekciu, keď ním
+  **otočíš** (o viac ako 1,5 %) — a raz pri štarte a po každom resete — cez
+  vlastné kroky korekcie Grbl, takže PC a dotyková obrazovka ju medzitým môžu
+  meniť; keď sa gombík pohne, prevezme ju znova.
+
+`$I` ukazuje `pnl=<tlačidlá: bit 0 START, 1 HOLD, 2 STOP>/<A0>/<A1>` (hodnoty
+0–4095, 0 keď je vypnutý).
+
+### Menič vretena cez RS485 (`$33`–`$37`, D17–D19)
+
+Shield v4 má izolovaný port RS485 (ADM2587E) pre menič vretena na
+**Serial2 = USART2**: **D18** TX (PD5), **D19** RX (PD6) a **D17** (PI9)
+prepína budič na vysielanie (1) alebo príjem (0; pull-down 10 k na shielde ho
+drží na príjme, kým GIGA štartuje). Polovičný duplex, zakončenie 120 Ω
+prepojkou. S `$33=1` je na ňom Grbl **Modbus RTU** master a riadi menič cez
+zbernicu — popri výstupoch FWD/REV a 0–10 V na A12, ktoré fungujú ďalej, takže
+funguje ktorékoľvek zapojenie.
+
+| Nastavenie | Predvolene | |
+|---|---|---|
+| `$33` | 0 | menič: 0 žiaden (len 0–10 V a relé), 1 Delta (MS300, C2000, VFD-E, …) |
+| `$34` | 1 | adresa meniča na Modbuse (1–247) |
+| `$35` | 9600 | prenosová rýchlosť (1200–115200) |
+| `$36` | 1 | rámec: 0 8N1, 1 8N2, 2 8E1, 3 8O1, 4 8E2, 5 8O2 |
+| `$37` | 400 | frekvencia meniča pri S = `$30` (Hz, najviac 655,35) |
+
+* **`M3` / `M4`** spustia dopredu / dozadu, **`M5`** a `S0` zastavia.
+  Frekvencia je S / `$30` × `$37`, pričom S je obmedzené na `$31`–`$30`
+  a korekcia otáčok ho mení presne ako výstup PWM: `$30=24000`, `$37=400`,
+  `S12000` → 200,00 Hz.
+* **Každých 100 ms** Grbl prečíta z meniča kód poruchy, stav, žiadanú
+  a výstupnú frekvenciu (čím zároveň živí komunikačný watchdog meniča) a to
+  nahradí kontakty relé:
+  * **otáčky dosiahnuté** — výstupná frekvencia do 2 % od žiadanej (aspoň
+    0,5 Hz) a menič beží tak, ako má: `$52` na to čaká po `M3`/`M4`/S a `$53`
+    to stráži počas rezania, ako pri relé (to sa pri `$33` > 0 nepoužíva);
+  * **porucha** — menič hlási kód poruchy: vreteno vypnúť, riadené
+    zastavenie, `ALARM:19`, `$X` odmietnuté (`error:43`), kým porucha
+    nezmizne; reset alebo `$X` pošle meniču reset poruchy (a dá impulz na
+    `$92` ako doteraz). Relé poruchy (`$78`), ak je priradené, platí tiež;
+  * **klieština** — zostane zatvorená, kým menič hlási akúkoľvek výstupnú
+    frekvenciu, alebo ešte nebolo vidieť, že stojí, odkedy dostal povel na
+    chod.
+* **`ALARM:23`** (po riadenom zastavení, poloha zostane), keď sa meniču nedá
+  zveriť vreteno: po troch pokusoch žiadna platná odpoveď, kým vreteno má
+  bežať alebo ešte môže bežať; povel, ktorý menič odmietol (výnimka Modbus —
+  napr. frekvencia nad jeho maximom); alebo menič, ktorý sa 1 s nerozbehne,
+  nezastaví, neotočí smer alebo neprevezme frekvenciu (povel na chod má
+  z klávesnice a pod.) — Grbl medzitým povel opakuje. `$X` a `$H` sa dovtedy
+  odmietajú s **`error:51`**. Nemý menič pri vypnutom a stojacom vretene nie
+  je alarm, len ho ukáže `$VFD` a `$I`. Menič, ktorý dostal povel na chod
+  a potom stíchol, drží `$X` odmietnuté, kým znova neodpovie (alebo `$33=0`):
+  nastav mu vlastný časový limit komunikácie, aby zastavil sám.
+* Nie v laserovom režime: `$32` a `$33` sa vylučujú (`error:5`). `$33`–`$36`
+  sa menia len pri zastavenom vretene (`error:8`).
+
+Menič Delta (čísla parametrov MS300 / C2000; VFD-E: zdroj frekvencie
+`02-00`=4, zdroj povelu na chod `02-01`=3 alebo 4):
+
+| Parameter | Hodnota | |
+|---|---|---|
+| `00-20` | 1 | frekvencia z RS485 |
+| `00-21` | 2 | povel na chod z RS485 |
+| `09-00` | = `$34` | adresa |
+| `09-01` | = `$35` / 1000 | rýchlosť v kbps (9,6) |
+| `09-02` | 1 alebo 2 | pri strate komunikácie: varovanie a dobeh rampou / voľným dobehom |
+| `09-03` | 3,0 | časový limit komunikácie, s (Grbl sa pýta každých 0,1 s; zápis nastavení do flash môže zdržať hlavnú slučku až na 2 s) |
+| `09-04` | 12 + `$36` | rámec RTU: 13 = 8N2 (`$36=1`), 14 = 8E1 (`$36=2`) |
+| `01-00` | ≥ `$37` | najvyššia výstupná frekvencia |
+
+**`$VFD`** vypíše, čo Grbl vie:
+
+    [VFD:Delta link=OK want=FWD,200.00 drive=FWD,200.00,199.50 err=0 st=0503
+     remote=3 at=1 trouble=0 tx=1204 ok=1204 retry=0 fail=0 exc=0/0 sim=0 clk=120]
+
+`link` OFF (`$33=0`), WAIT (zatiaľ žiadna odpoveď), OK, LOST; `want` povel
+a frekvencia, ktoré Grbl chce; `drive` čo hlási menič: stav chodu, žiadaná
+a výstupná frekvencia; `err` jeho kód poruchy, `st` jeho stavové slovo
+(2101H, hex); `remote=3` frekvencia aj povel na chod z RS485 (`00-20`/`00-21`
+správne); `trouble` 1 nemý, 2 odmietol, 3 neposlúcha; potom transakcie, ich
+opakovania, zlyhania a výnimky (počet / posledný kód) a hodinový kmitočet
+USART2 v MHz. **`$VFD=R2100,4`** prečíta až 8 registrov, **`$VFD=W2000,12`**
+jeden zapíše — adresa a hodnota šestnástkovo, len v Idle alebo Alarm;
+`$VFD=R0900` prečíta parameter meniča `09-00`. Po zápise Grbl pošle svoj povel
+a frekvenciu znova. `$I` má `vfd=<spojenie 0 vyp., 1 čaká, 2 ok, 3
+stratené>/<kód poruchy>/<výstupná frekvencia, 0,01 Hz>/<zlyhané transakcie>`.
+
+Ako to beží: USART2 na prerušeniach so zapnutými 16-bajtovými FIFO, pod
+časovačmi Grbl; D17 ide do 1 3 µs pred prvým štart bitom, prijímač je počas
+vysielania vypnutý (žiadna ozvena, nech robí ~RE budiča čokoľvek) a D17
+spadne v prerušení „vysielanie dokončené“ po poslednom stop bite; rámec
+končí časovým limitom prijímača USART po 3,5 znaku (1,75 ms nad 19200 Bd).
+Jedna transakcia naraz z hlavnej slučky (`vfd_service()`), bez čakania na
+linku: CRC-16, 100 ms na odpoveď, dve opakovania, výnimky; povel na zastavenie
+ide pred všetkým ostatným. Ďalší výrobcovia (Huanyang a pod.) sú profil
+v `src/vfd.c` — ich registre a význam ich stavu; ostatné je spoločné.
+
 ### Oneskorenie kroku po zmene smeru (`$56`)
 
 Niektoré drivery potrebujú čas medzi zmenou smeru a ďalším krokom — Nanotec
@@ -497,15 +629,32 @@ Na testy bez stroja (všetky používa `tests/test_io.py`):
   `$TMPW=n[,rýchlosť]` otočí koliesko o n dielikov (záporné: dozadu)
   rýchlosťou toľko dielikov za sekundu (predvolene 100) prepínaním pull-upov
   pinov A a B v kvadratúre zo skenovania vstupov — TIM8 počíta skutočné hrany.
+* `$TPNL=maska[,ms]` stlačí tlačidlá panela obsluhy (bit 0 START, 1 HOLD,
+  2 STOP), ako keby ich piny boli v nule, ak je ms, tak o ms neskôr;
+  `$TPNL=0` ich pustí. `$TPOT=n,hodnota` dá potenciometru n (1 = A0, 2 = A1)
+  hodnotu (0–4095) namiesto jeho pinu, `$TPOT=n,-1` ho vráti
+  (`tests/test_panel.py`).
+* `$TVFD=režim[,kód]` dá namiesto portu RS485 simulovaný menič Delta, ktorý
+  dostáva presne tie rámce, ktoré by išli na port: 1 zdravý (výstup sa
+  rozbieha 400 Hz/s; porucha, ktorú nahlásil, zostane zapamätaná do resetu
+  poruchy), 2 v poruche s kódom (predvolene 2; reset poruchy kým trvá nič
+  nerobí), 3 nemý, 4 každá druhá odpoveď pokazená, 5 ignoruje chod a stop
+  (ovládanie z klávesnice); 0 znova port (`tests/test_vfd.py`).
 
 * `$SPLASH[=ms]` znova ukáže úvodnú obrazovku, aspoň na ms (predvolene
   3000) — na snímky obrazovky.
 
 Ani jeden neprežije vypnutie napájania; všetky zámerne prežijú reset.
 
-**Otáčky** vretena sú PWM na D6 a zároveň analógová úroveň na A12: 0 V pri
-S0 a 3,3 V pri `$30`. Laserový režim (`$32=1`) moduluje oboje po segmentoch
-pohybu, ako pôvodné Grbl moduluje PWM pin.
+**Otáčky** vretena sú analógová úroveň na A12 — 0 V pri S0 a 3,3 V pri
+`$30` — a pri **`$38`** > 0 zároveň PWM na D6 (= OUT13, TIM4_CH2, 1 kHz).
+`$38`: **0** vypnuté (predvolené; D6 je OUT13), **1** PWM, **2** PWM obrátené
+na pine — pre vstup PWM s TTL úrovňou za OUT13, ktorý pri pine v jednotke
+spína proti 0 V, takže ten vstup vidí správnu striedu (pozor: kým GIGA pin
+ešte neriadi, počas štartu, vidí taký vstup plný výkon; laser potrebuje
+vlastné povolenie). Laserový režim (`$32=1`) potrebuje PWM (inak
+`error:17`) a moduluje oboje po segmentoch pohybu, ako pôvodné Grbl moduluje
+PWM pin.
 
 ## Programy z USB kľúča
 
@@ -679,11 +828,11 @@ Stránky:
 * **OVR** — posuv −10 / −1 / 100 % / +1 / +10 (tlačidlá ± sa pri podržaní
   opakujú), rýchloposuv 25 / 50 / 100 %, otáčky −10 / 100 % / +10 a **STOP**
   vretena (vo feed hold), prepínače **FLOOD** a **MIST**.
-* **I/O** — IN1–IN20 a OUT1–OUT12 ako indikátory, každý s menom priradenej
+* **I/O** — IN1–IN20 a OUT1–OUT14 ako indikátory, každý s menom priradenej
   funkcie; STOP, drivery, brzda Z a klieština; **AUX0 – AUX5** ako tlačidlá
   zap./vyp., **COLLET** (podržať na otvorenie, ťuknúť na zatvorenie)
   a impulzy **SERVO** a **VFD reset**.
-* **`$$`** — všetkých 92 nastavení, šesť na stránku, každé s číslom, menom,
+* **`$$`** — všetkých 101 nastavení, šesť na stránku, každé s číslom, menom,
   jednoriadkovou nápovedou a aktuálnou hodnotou (masky ako písmená osí alebo
   čísla kanálov, voľby menom). Ťuknutie otvorí editor s úplným vysvetlením,
   čo nastavenie robí, a s:
@@ -763,10 +912,16 @@ spínačov a sondy — každý vstup tu má vlastný bit v `$79`), a navyše:
 
 | Nastavenie | Predvolene | Význam |
 |---|---|---|
+| `$33` | 0 | menič vretena cez RS485: 0 žiaden, 1 Delta |
+| `$34` `$35` `$36` | 1, 9600, 1 | menič: adresa Modbus, rýchlosť, rámec (0 8N1, 1 8N2, 2 8E1, 3 8O1, 4 8E2, 5 8O2) |
+| `$37` | 400 | frekvencia meniča pri S = `$30` (Hz) |
+| `$38` | 0 | PWM na OUT13 (D6): 0 vyp., 1 zap., 2 obrátené |
+| `$39` | 1 | tlačidlá panela obsluhy START/HOLD/STOP (A4–A6) sa používajú |
 | `$40` | 0 | kinematika: 0 karteziánska, 1 CoreXY |
 | `$41` | 0 | limity CoreXY: 0 na motor, 1 na os hlavy |
 | `$42` | 0 | os A: 0 rotačná, 1 lineárna, 2 druhý motor X, 3 druhý motor Y |
 | `$43` | 0 | referovať samostatnú os A v `$H` |
+| `$44` `$45` | 0, 0 | potenciometer panela A0 / A1: 0 nič, 1 korekcia posuvu, 2 otáčok, 3 rýchloposuvu |
 | `$46` | 1 | výstupy AUX, ktoré idú s vretenom (maska AUX0=1 … AUX5=32) |
 | `$48` `$49` `$50` | 200, 100, 200 | brzda Z: drivery zap. → uvoľnená, uvoľnená → prvý krok, zabrzdená → drivery vyp. (ms) |
 | `$51` | 5000 | dobeh vretena, kým sa smie otvoriť klieština (ms) |
@@ -778,9 +933,9 @@ spínačov a sondy — každý vstup tu má vlastný bit v `$79`), a navyše:
 | `$57` | 0 | vstup centrálneho STOP sa používa |
 | `$58` | 1 | `M6`: 0 chyba (ako pôvodné Grbl), 1 pauza na ručnú výmenu nástroja |
 | `$59` | 1 | brzda Z: 0 ju riadi driver, 1 výstup BRAKE |
-| `$60`–`$78` | 1 … 19 | vstupný kanál každej vstupnej funkcie (0 = nepoužitá) |
+| `$60`–`$78` | 1 … 8, 17 … 20, 9, 13, 14, 15, 10, 11, 12 | vstupný kanál každej vstupnej funkcie (0 = nepoužitá) |
 | `$79` | 0 | NC vstupy: bit n−1 = INn, bit 20 = STOP, bit 21 = DRV PWR |
-| `$80`–`$92` | 1 2 3 4 5 6 7 8 12 0 9 10 11 | výstupný kanál každej výstupnej funkcie (0 = nepoužitá) |
+| `$80`–`$92` | 1 2 3 4 5 6 7 8 12 14 9 10 11 | výstupný kanál každej výstupnej funkcie (0 = nepoužitá) |
 | `$93` | 0 | invertované výstupy: bit n−1 = OUTn |
 | `$94` | 0 | strážiť vstup napájania driverov (D53) |
 | `$95` | 1000 | ako dlho musí byť napájanie driverov späť pred `$H`/`$X` (ms) |
@@ -790,18 +945,22 @@ spínačov a sondy — každý vstup tu má vlastný bit v `$79`), a navyše:
 | `$103` `$113` `$123` `$133` | 8.889, 3600, 360, 360 | os A: kroky, rýchlosť, zrýchlenie, dráha (stupne pri `$42=0`) |
 
 Verzia nastavení sa zmenila s I/O kanálmi (21): prvý štart toho firmvéru
-obnovil predvolené hodnoty. Verzie 22 (`$94`, `$95`) a 23 (`$96`–`$98`) len
-pridávajú nastavenia a záznam verzie 21 alebo 22 sa prevezme tak, ako je
-(nové nastavenia dostanú predvolené hodnoty). Staršie záznamy sa stále
+obnovil predvolené hodnoty. Verzie 22 (`$94`, `$95`), 23 (`$96`–`$98`), 24
+(`$33`–`$37`) a 25 (`$38`, `$39`, `$44`, `$45`) len pridávajú nastavenia
+a záznam verzie 21–24 sa prevezme tak, ako je (nové nastavenia dostanú
+predvolené hodnoty; záznam so zapnutým laserovým režimom si ponechá PWM,
+`$38=1`). Staršie záznamy sa stále
 nahradia predvolenými — pred aktualizáciou si ulož výpis `$$` a `$#`.
 
 Nové stavové kódy: `error:39` klieština otvorená, `40` STOP aktívne, `41`
 koncový spínač v tom smere zopnutý, `42` kanál už je použitý, `43` porucha
 meniča aktívna, `44` blokovanie klieštiny, `45` žiaden koncový spínač na
-konci homingu, `50` drivery bez napájania (alebo ešte nie `$95` späť). Nové
-alarmy: `ALARM:14` vreteno nedosiahlo otáčky, `17` alarm serva, `18` STOP,
-`19` porucha meniča, `20` homing narazil na vzdialený spínač, `22` strata
-napájania driverov.
+konci homingu, `50` drivery bez napájania (alebo ešte nie `$95` späť), `51`
+menič na RS485 mlčí, odmietol povel alebo neposlúcha, `52` `$VFD=R/W`
+dostal výnimku Modbus. Nové alarmy: `ALARM:14` vreteno nedosiahlo otáčky,
+`17` alarm serva, `18` STOP, `19` porucha meniča, `20` homing narazil na
+vzdialený spínač, `22` strata napájania driverov, `23` menič na RS485 mlčí,
+odmieta alebo neposlúcha.
 
 Nastavenia sú vo vnútornej flash STM32, v dvoch 128 kB sektoroch banky 2
 tesne pod programom M4 (0x08140000 a 0x08160000). Každá zmena pripíše 1 kB
@@ -917,6 +1076,8 @@ src/
   jog.[ch]               príkazy posuvu: $J= zo sendera, z dotykovej obrazovky, z kolieska
   drvpwr.[ch]            vstup napájania driverov (D53), ALARM:22
   mpg.[ch]               ručné koliesko: koliesko na TIM8, prepínače, LED
+  vfd.[ch]               menič vretena cez RS485: Modbus RTU master, profil Delta, $VFD, $TVFD
+  panel.[ch]             panel obsluhy: tlačidlá START/HOLD/STOP, potenciometre korekcií, $TPNL, $TPOT
   job.[ch]               programy z USB kľúča: kontrolný prechod, beh, STOP, príkazy $F
   grbl_job.h             zdieľaný blok pre USB kľúč: zoznam súborov, požiadavky, kruhový buffer riadkov
   grbl_shm.h             rozloženie zdieľanej pamäte medzi jadrami
@@ -924,7 +1085,7 @@ src/
   planner.c gcode.c stepper.c limits.c ...   jadro Grbl, štyri osi
   hal/
     hal.h                rozhranie platformy, ktoré vidí jadro v C
-    hal_h7.cpp           GPIO, TIM6/7/17, PWM na TIM4, DAC, oneskorenia, LED
+    hal_h7.cpp           GPIO, TIM6/7/17, PWM na TIM4, DAC, koliesko na TIM8, RS485 na USART2, oneskorenia, LED
     hal_serial.cpp       prenos cez USB CDC
     hal_nvs.cpp          záznamník nastavení vo vnútornej flash
     hal_shm.cpp          zdieľaná pamäť, štart M4
@@ -958,6 +1119,9 @@ tests/
   test_corexy.py         CoreXY: impulzy remeňových motorov, uzavretie dráhy, posuv, $41, vylúčenia
   test_touch.py          každé dotykové tlačidlo a editor $$ cez $TOUCH, snímky obrazovky (--shots)
   test_mpg.py            koliesko: kroky, OFF/blokované, sledovanie kolieska, zahodený nadbytok, zmena osi, softvérové limity
+  test_panel.py          OUT13/OUT14, PWM na OUT13 ($38), tlačidlá a potenciometre panela
+  test_vfd.py            menič cez RS485: M3/M4/M5/S, otáčky, porucha, nemý / odmietajúci / klávesnicový menič,
+                         $VFD; simulovaný ($TVFD) alebo PC ako menič na prevodníku USB-RS485 (--rs485)
   demo_run.py            pošle examples/demo_complex.nc a zmeria čas
 examples/                ukážkový G-kód; usb/ - testovacie súbory pre kľúč
 docs/*.png               snímky displeja ($SCREEN)
@@ -1183,6 +1347,61 @@ prechádza:
   s `$56=35` sa zdržalo 39 krokov a najkratší čas od smeru po krok bol
   **35,4 µs**; 0 zlúčených impulzov a dráha presná na krok v oboch prípadoch.
 
+**Menič vretena cez RS485** (`test_vfd.py`, simulovaný menič Delta háčika
+`$TVFD`, ktorý dostáva rámce, čo by išli na port; `$30=24000`, `$37=400`),
+všetko prechádza:
+
+* `M3 S12000` → FWD 200,00 Hz v meniči; `M4 S6000` → REV 100,00; korekcia
+  +10 % → 110,00 v meniči; `S100` pri `$31=6000` → 100,00; `S30000` →
+  400,00; `S0` a `M5` → stop, výstup klesne na 0; žiadna zlyhaná
+  transakcia, `remote=3`.
+* `$52=5000`: `M3 S24000` (menič sa rozbieha 400 Hz/s) odpovie ok po 1,05 s
+  s `at=1`; `S12000` po 0,60 s (vrátane 250 ms ustálenia); `$52=500` →
+  `ALARM:14`, menič dostane povel na zastavenie.
+* Porucha meniča 7 → `ALARM:19`; `$X` → `error:43`, kým príčina trvá; keď
+  zmizne, `$X` pošle reset poruchy, porucha zmizne, `$X` ok.
+* Nemý menič: vreteno vypnuté → `link=LOST`, žiaden alarm; `M3` →
+  `ALARM:23`, `$X` ok (povel na chod neodišiel); počas chodu → `ALARM:23` po
+  0,46 s, `$X` → `error:51`, kým menič neodpovie a nezastaví. Počas
+  `G1 X50 F600`: Run → Hold → `ALARM:23` na X=14,92, poloha zostane.
+* Každá druhá odpoveď so zlým CRC: 13 opakovaní, žiadna zlyhaná transakcia,
+  žiaden alarm. Menič, ktorý ignoruje chod (klávesnica): `ALARM:23` po
+  1,07 s, `remote=0`. 650 Hz odmietnuté výnimkou 3 → `ALARM:23`, `$X` ok po
+  `$37=400`.
+* `$VFD=R2100,4` → `0000,0503,4E20,4E20`; `$VFD=W2001,1388`; neznámy
+  register → `[MSG:VFD exception 2]`, `error:52`. Klieština sa odmietne, kým
+  menič dobieha, a otvorí sa, keď stojí; `$32=1` pri `$33=1` → `error:5`;
+  `$34` pri bežiacom vretene → `error:8`.
+* S `$33=0` prechádzajú skupiny `spindle` a `collet` z `test_io.py` bez
+  zmeny (relé, 0–10 V). Nastavenia verzie 23 sa prevzali. Skutočný USART2
+  bez pripojeného meniča vysielal, čakal a opakoval (prerušenie „vysielanie
+  dokončené“ púšťa D17); odpovede po vedení potrebujú menič alebo
+  `--rs485` s prevodníkom USB-RS485.
+
+**Shield v4: OUT13/OUT14, PWM na OUT13, panel obsluhy** (`test_panel.py`,
+panel cez `$TPNL` / `$TPOT`), všetko prechádza:
+
+* AUX4 na OUT13: `M64 P4` → OUT13 zap., D6 v jednotke, `M65 P4` vyp.; AUX5
+  na OUT14 rovnako; `$88=15` a bit 14 v `$93` → `error:3`; `$93=4096`
+  invertuje D6.
+* `$38=1` odmietnuté, kým je na OUT13 funkcia (`error:42`), aj funkcia na
+  OUT13, kým je PWM; `M3 S500` → PWM 500 ‰, DAC 2047; D6 v nule pri S0
+  a v jednotke pri plnej strede, `$38=2` naopak; `$38=0` → PWM vypnuté, DAC
+  ďalej 2047; laserový režim bez PWM odmietnutý (`error:17`), rovnako
+  `$38=0` v laserovom režime.
+* Z panela počas `G1 X50 F600`: HOLD → Hold, stojí; START → Run. STOP počas
+  pohybu: `[MSG:Panel STOP]`, pozastavenie, reset do Idle bez alarmu na
+  X=38,82, vreteno vypnuté — a `G1 X0` potom dôjde presne na 0 (poloha
+  zostala). STOP v pokoji so zapnutým vretenom: vypne, Idle. `$39=0`
+  tlačidlá ignoruje.
+* Potenciometre: stred → 100 %; A0 na 0 / 4095 / 1024 → posuv 10 / 200 /
+  57 %; A1 na 3000 → otáčky 144 %; +10 % z PC (154 %) zostane, kým gombík
+  stojí, aj keď sa pohne menej ako mŕtve pásmo; otočený → 149 %; po resete
+  znova nastavia 10 % a 149 %; `$44=3`: rýchloposuv 25 / 50 / 100 %.
+* Na tom istom firmvéri prechádzajú `test_io.py`, `test_axes.py`
+  a `test_vfd.py`; záznam nastavení verzie 24 sa prevzal, vlastné priradenie
+  vstupov a výstupov na doske zostalo.
+
 **CoreXY** (`test_corexy.py`, 100 krokov/mm, `$40=1`), všetko prechádza —
 impulzy počítané pre každý driver cez `$I motor=`:
 
@@ -1335,7 +1554,8 @@ a STOP boli vyskúšané cez testovacie háčiky, ktoré ovládajú samotné vst
 piny, nie so skutočnými spínačmi, relé, brzdou či drivermi; vyrovnanie
 portálu podriadenou osou A a homing CoreXY vôbec; sonda a tlačidlá len cez
 svoje piny. Reakcia na STOP je vlastné meranie firmvéru — treba ju potvrdiť
-osciloskopom na shielde.
+osciloskopom na shielde. Menič cez RS485 sa zatiaľ nestretol so skutočným
+meničom.
 
 ---
 

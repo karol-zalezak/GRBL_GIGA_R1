@@ -22,25 +22,33 @@
       D33  Z step     PJ4                      D32  IN6   (Z+ limit)
       D35  Z dir      PJ5                      D34  IN7   (A- limit)
       D37  A step     PJ6                      D36  IN8   (A+ limit)
-      D39  A dir      PI14                     D38  IN9   (X servo alarm)
-      D41  enable                              D40  IN10  (Y servo alarm)
-      D43  IN17 (door)                         D42  IN11  (Z servo alarm)
-      D45  IN18 (spindle at speed)             D44  IN12  (A servo alarm)
-      D47  IN19 (spindle fault)                D46  IN13  (probe)
-      D49  STOP  PE4 / EXTI4 (fixed)           D48  IN14  (reset button)
-      D51  IN20 (free)                         D50  IN15  (hold button)
-      D53  spare                               D52  IN16  (start button)
+      D39  A dir      PI14                     D38  IN9   (probe)
+      D41  enable                              D40  IN10  (safety door)
+      D43  IN17 (X servo alarm)                D42  IN11  (spindle at speed)
+      D45  IN18 (Y servo alarm)                D44  IN12  (spindle fault)
+      D47  IN19 (Z servo alarm)                D46  IN13  (reset button)
+      D49  STOP  PE4 / EXTI4 (fixed)           D48  IN14  (hold button)
+      D51  IN20 (A servo alarm)                D50  IN15  (start button)
+      D53  DRV PWR (fixed)                     D52  IN16  (free)
 
       top header, left to right
       D13 OUT1  D12 OUT2  D11 OUT3  D10 OUT4  D9 OUT5  D8 OUT6
-      D7 spare (input only)  D6 spindle PWM
+      D7 spare (input only)  D6 OUT13 / spindle PWM ($38)
       D5 OUT7  D4 OUT8  D3 OUT9  D2 OUT10   D14 OUT11  D15 OUT12  D16 BRAKE (fixed)
 
+      analog header
+      A0, A1  operator panel potentiometers ($44, $45)
+      A2      OUT14
+      A4, A5, A6  operator panel START, HOLD, STOP buttons ($39)
       A12  DAC0, spindle speed 0-3.3 V (to the isolated 0-10 V stage)
 
-  IN1-IN20 and OUT1-OUT12 are universal channels: what each one does is a
+  The defaults in brackets are those of shield v4 (servo alarms on IN17-IN20,
+  next to their DE-15 connectors).
+
+  IN1-IN20 and OUT1-OUT14 are universal channels: what each one does is a
   setting ($60-$93, see io.h); the functions in brackets are the defaults.
-  Fixed are only the step/direction/enable signals, STOP, BRAKE, PWM and DAC.
+  Fixed are only the step/direction/enable signals, STOP, BRAKE, the DAC and
+  the operator panel; OUT13 carries the spindle PWM instead when $38 > 0.
 
   The four step pins share GPIO port J (PJ0/2/4/6), so a step is a single
   32-bit store; three of the four direction pins are on port J too.
@@ -76,8 +84,10 @@
   #define IN_CHANNEL_PINS  { 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, \
                              42, 44, 46, 48, 50, 52, 43, 45, 47, 51 }
 
-  // Universal output channels OUT1-OUT12, in channel order.
-  #define OUT_CHANNEL_PINS { 13, 12, 11, 10, 9, 8, 5, 4, 3, 2, 14, 15 }
+  // Universal output channels OUT1-OUT14, in channel order. OUT13 (D6) is the
+  // spindle PWM pin as well (TIM4_CH2, $38); OUT14 is A2 (PB0).
+  #define OUT_CHANNEL_PINS { 13, 12, 11, 10, 9, 8, 5, 4, 3, 2, 14, 15, 6, 78 }
+  #define OUT_PWM_CHANNEL  13
 
   // Central STOP: signal from the safety relay. Fixed pin with its own EXTI
   // line (PE4 -> EXTI4, a dedicated interrupt vector nothing else uses).
@@ -98,9 +108,28 @@
   // energised = brake released.
   #define BRAKE_PIN             16
 
-  // Spindle speed: PWM carrier on D6 and an analog level on DAC0 (A12).
+  // Operator panel of shield v4 (panel.h), straight to the GIGA, not isolated:
+  // two potentiometers (ratiometric to the 3.3 V ADC reference) and three
+  // buttons to GND with external pull-ups, active low. A4-A6 are all on
+  // port C, so the input scan reads them with one access.
+  #define PANEL_POT1_PIN        76    // A0, PC4, ADC1_INP4
+  #define PANEL_POT2_PIN        77    // A1, PC5, ADC1_INP8
+  #define PANEL_START_PIN       80    // A4, PC3
+  #define PANEL_HOLD_PIN        81    // A5, PC2
+  #define PANEL_STOP_PIN        82    // A6, PC0
+
+  // Spindle speed: PWM carrier on D6 (= OUT13, only with $38 > 0) and an
+  // analog level on DAC0 (A12).
   #define SPINDLE_PWM_PIN       6
   #define SPINDLE_DAC_PIN       84    // A12 / DAC0, PA4. Comment out to leave the DAC alone.
+
+  // RS485 to the spindle VFD (vfd.h; isolated ADM2587E on shield v4): Serial2
+  // = USART2, whose TX and RX are fixed (alternate function 7). DE + ~RE of
+  // the transceiver: high = transmit; the shield's pull-down keeps it
+  // receiving while the pin is not driven.
+  #define RS485_TX_PIN          18    // PD5, USART2_TX
+  #define RS485_RX_PIN          19    // PD6, USART2_RX
+  #define RS485_DE_PIN          17    // PI9
 
   // Board RGB LED (active low): green = receive, blue = transmit, red = alarm.
   #define LED_RED_PIN           86

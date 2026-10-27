@@ -304,6 +304,11 @@ def t_spindle(g):
     say("\nspindle at speed / fault:")
     ok = True
     g.setup_bench(steps_per_mm=100, max_rate=6000, accel=1000)
+    # The VFD's relays on whatever inputs $77/$78 put them (shield v4: IN11/IN12).
+    s = g.settings()
+    at, flt = int(s.get(77, 0)) or 11, int(s.get(78, 0)) or 12
+    g.ok("$77=%d" % at)
+    g.ok("$78=%d" % flt)
     g.ok("$52=1500")
     g.ok("$53=1")
     t0 = time.monotonic()
@@ -314,7 +319,7 @@ def t_spindle(g):
     ok &= check(d["out"][0] & 0b11 == 0, "spindle outputs off: out=%s" % (d["out"],))
     recover(g)
 
-    g.ok("$TIN=18,1")
+    g.ok("$TIN=%d,1" % at)
     time.sleep(0.05)
     t0 = time.monotonic()
     g.ok("M3 S500")
@@ -328,8 +333,8 @@ def t_spindle(g):
 
     g.ok("G91 G1 X30 F600")
     time.sleep(0.6)
-    g.ok("$TIN=18,0")
-    g.ok("$TIN=18,1,800")      # the relay closes again 0.8 s later
+    g.ok("$TIN=%d,0" % at)
+    g.ok("$TIN=%d,1,800" % at)      # the relay closes again 0.8 s later
     time.sleep(0.5)
     st = state(g)
     ok &= check(st.startswith("Hold"), "$53=1: losing the signal while cutting -> %s" % st)
@@ -343,16 +348,16 @@ def t_spindle(g):
     g.ok("$53=2")
     g.ok("G91 G1 X-30 F600")
     time.sleep(0.6)
-    g.write(b"$TIN=18,0\n")
+    g.write(b"$TIN=%d,0\n" % at)
     seen = alarm_reset(g)
     s = g.query()
     ok &= check(b"ALARM:14" in seen and s[1].startswith("Alarm"), "$53=2: alarm after a controlled stop at X=%.3f" % s[2])
     recover(g)
 
     # VFD fault while the spindle runs.
-    g.ok("$TIN=18,1")
+    g.ok("$TIN=%d,1" % at)
     g.ok("M3 S500")
-    g.write(b"$TIN=19,1\n")
+    g.write(b"$TIN=%d,1\n" % flt)
     seen = alarm_reset(g)
     d = diag(g)
     ok &= check(b"ALARM:19" in seen and d["out"][0] & 0b11 == 0, "fault: ALARM:19, FWD/REV off: out=%s" % (d["out"],))
@@ -360,7 +365,7 @@ def t_spindle(g):
     d = diag(g)
     ok &= check(r[-1] == b"error:43" and d["out"][0] & (1 << 10),
                 "$X refused while in fault, VFD reset pulse on OUT11: %s out=%s" % (r[-1].decode(), d["out"]))
-    g.ok("$TIN=19,0")
+    g.ok("$TIN=%d,0" % flt)
     time.sleep(0.1)
     r = g.cmd("$X")
     ok &= check(r[-1] == b"ok", "fault gone: $X: %s" % r[-1].decode())

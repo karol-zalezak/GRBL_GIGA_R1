@@ -32,9 +32,12 @@
 // channels ($48-$59, $60-$93; $5, $6, $44, $45 and $47 gone); 22 appends
 // the driver power input ($94, $95) and takes a version 21 image over (see
 // read_global_settings()); 23 appends the handwheel ($96-$98) and takes
-// version 21 and 22 images over. Bumped from upstream Grbl's 10 so a
-// mismatched image is rejected and defaults are written instead - back up $$ and $#.
-#define SETTINGS_VERSION 23  // NOTE: Check settings_reset() when moving to next version.
+// version 21 and 22 images over; 24 appends the spindle VFD over RS485
+// ($33-$37) and takes versions 21-23 over; 25 appends the PWM on OUT13 ($38)
+// and the operator panel ($39, $44, $45) and takes versions 21-24 over.
+// Bumped from upstream Grbl's 10 so a mismatched image is rejected and
+// defaults are written instead - back up $$ and $#.
+#define SETTINGS_VERSION 25  // NOTE: Check settings_reset() when moving to next version.
 
 // Define bit flag masks for the boolean settings in settings.flag.
 #define BIT_REPORT_INCHES      0
@@ -149,6 +152,16 @@ typedef struct {
   uint8_t mpg_mode;              // $96: handwheel 0 off, 1 on, 2 on reversed
   float mpg_step;                // $97: distance of one detent at x1
   float mpg_max_feed;            // $98: highest handwheel feed, mm/min
+  // Version 24.
+  uint8_t vfd_type;              // $33: spindle VFD over RS485: 0 none, 1 Delta (vfd.h)
+  uint8_t vfd_address;           // $34: its Modbus address
+  uint8_t vfd_format;            // $36: 0 8N1, 1 8N2, 2 8E1, 3 8O1, 4 8E2, 5 8O2
+  uint32_t vfd_baud;             // $35: baud rate
+  float vfd_max_hz;              // $37: drive frequency at $30, Hz
+  // Version 25.
+  uint8_t spindle_pwm;           // $38: PWM on OUT13 (D6): 0 off, 1 on, 2 inverted
+  uint8_t panel_buttons;         // $39: operator panel START/HOLD/STOP in use
+  uint8_t pot_func[2];           // $44, $45: panel potentiometers A0, A1 (panel.h)
 } settings_t;
 extern settings_t settings;
 
@@ -163,9 +176,10 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value);
 
 // The global settings in $$ order, the value of any setting as $$ prints it,
 // and whether $$ prints it with decimals. The display uses the same three.
-#define N_GLOBAL_SETTINGS 76
+#define N_GLOBAL_SETTINGS 85
 #define SETTINGS_GLOBAL_NUMBERS { 0, 1, 2, 3, 4, 10, 11, 12, 13, 20, 21, 22, 23, 24, 25, 26, 27, \
-                                  30, 31, 32, 40, 41, 42, 43, 46,                            \
+                                  30, 31, 32, 33, 34, 35, 36, 37, 38, 39,                    \
+                                  40, 41, 42, 43, 44, 45, 46,                                \
                                   48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,            \
                                   60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,        \
                                   73, 74, 75, 76, 77, 78, 79,                                \

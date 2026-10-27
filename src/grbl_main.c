@@ -99,7 +99,7 @@ void grbl_init(void)
 
   settings_init(); // Load Grbl settings from the emulated EEPROM
   BOOT_STAGE("settings");
-  io_init();       // Input and output channels IN1-IN20, OUT1-OUT12, STOP pin
+  io_init();       // Input and output channels IN1-IN20, OUT1-OUT14, STOP pin
   BOOT_STAGE("io");
   stepper_init();  // Configure stepper pins and interrupt timers
   BOOT_STAGE("stepper");
@@ -162,6 +162,8 @@ void grbl_loop(void)
   estop_init();    // After limits_init(): the scan it rides on runs from there
   drvpwr_init();   // A reset keeps its state; only a change of $94 restarts it
   mpg_init();      // Handwheel pins and TIM8, once (before the M4 starts)
+  vfd_init();      // RS485 to the spindle VFD; the port only when $33-$36 changed
+  panel_init();    // operator panel: buttons A4-A6, potentiometers A0/A1
   BOOT_STAGE("limits");
   probe_init();
   plan_reset(); // Clear block buffer and planner variables

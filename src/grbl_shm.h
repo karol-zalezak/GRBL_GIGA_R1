@@ -38,7 +38,7 @@
 
 #define GRBL_SHM_ADDR       0x3800C000UL
 #define GRBL_SHM_MAGIC      0x47524742UL   // "GRGB"
-#define GRBL_SHM_VERSION    6
+#define GRBL_SHM_VERSION    8
 #define GRBL_SHM_M4_MAGIC   0x4D344433UL   // "M4D3" - changes with the layout of the M4 half
 
 // Machine state as the display shows it (a superset of Grbl's report states).
@@ -73,9 +73,10 @@
 #define GSHM_MPG_BLOCKED     3   // an axis is selected, the machine cannot jog now
 
 // Outputs: `outputs` has bit n-1 = channel OUTn on (logical, before $93), plus:
-#define GSHM_N_OUT          12
-#define GSHM_OUT_ENABLE     (1u << 12)  // drivers enabled
-#define GSHM_OUT_BRAKE      (1u << 13)  // Z brake released (BRAKE output on)
+#define GSHM_N_OUT          14
+#define GSHM_OUT_MASK       0x3FFFu
+#define GSHM_OUT_ENABLE     (1u << 14)  // drivers enabled
+#define GSHM_OUT_BRAKE      (1u << 15)  // Z brake released (BRAKE output on)
 // `out_fn` bit f = output function f on (io.h order, $80+f).
 
 // Input functions as the display names them, in io.h / $60 order.
@@ -124,9 +125,10 @@
 
 // The settings on the $$ page, in the order of set_val[]: the global ones in
 // $$ order (SETTINGS_GLOBAL_NUMBERS in settings.h), then the axis settings.
-#define GSHM_N_SETTINGS     92
+#define GSHM_N_SETTINGS     101
 #define GSHM_SETTING_NUMBERS { 0, 1, 2, 3, 4, 10, 11, 12, 13, 20, 21, 22, 23, 24, 25, 26, 27, \
-                               30, 31, 32, 40, 41, 42, 43, 46,                            \
+                               30, 31, 32, 33, 34, 35, 36, 37, 38, 39,                    \
+                               40, 41, 42, 43, 44, 45, 46,                                \
                                48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,            \
                                60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,        \
                                73, 74, 75, 76, 77, 78, 79,                                \

@@ -145,6 +145,8 @@ def t_outputs(g):
     ok &= check(out() == 0b11000000, "M65 P1, M62 P2 after motion: OUT7 + OUT8: %s" % bin(out()))
     g.ok("M64 P4")
     ok &= check(out() == 0b100011000000, "M64 P4: AUX4 on OUT12: %s" % bin(out()))
+    aux5 = int(g.settings().get(89, 0))
+    g.ok("$89=0")           # AUX5 without a channel (shield v4's default is OUT14)
     g.ok("M64 P5")
     ok &= check((outfn() >> 9) & 1 and out() == 0b100011000000,
                 "M64 P5: AUX5 on, no channel assigned: fn=%s ch=%s" % (bin(outfn()), bin(out())))
@@ -166,6 +168,7 @@ def t_outputs(g):
     g.ok("M5")
     g.ok("$84=5")
     g.ok("$92=11")
+    g.ok("$89=%d" % aux5)
     g.ok("G0 X0")
     sync(g)
     return ok
@@ -174,10 +177,13 @@ def t_outputs(g):
 def t_alarm(g):
     say("\nservo alarm input:")
     ok = True
+    # X's servo alarm on whatever input $68 puts it (shield v4: IN17).
+    ch = int(g.settings().get(68, 0)) or 17
+    g.ok("$68=%d" % ch)
     g.ok("$55=3000")        # a long reset pulse, so it outlasts the banner wait
     s = g.query()
-    ok &= check(s and s[1].startswith("Idle"), "IN9 (servo alarm X) idle: stays Idle")
-    g.write(b"$TIN=9,1\n")  # pull IN9 low: reads like the optocoupler conducting
+    ok &= check(s and s[1].startswith("Idle"), "IN%d (servo alarm X) idle: stays Idle" % ch)
+    g.write(b"$TIN=%d,1\n" % ch)  # pull it low: reads like the optocoupler conducting
     seen = []
     t0 = time.monotonic()
     while time.monotonic() - t0 < 2.0:
@@ -186,11 +192,11 @@ def t_alarm(g):
             seen.append(l)
             if l.startswith(b"ALARM:"):
                 break
-    ok &= check(b"ALARM:17" in seen, "IN9 active -> ALARM:17 (%s)" % [x.decode() for x in seen])
+    ok &= check(b"ALARM:17" in seen, "IN%d active -> ALARM:17 (%s)" % (ch, [x.decode() for x in seen]))
     s = g.query()
     ok &= check(s and "M" in s[5], "Pn shows M: %s" % (s[5] if s else None))
     g.reset()               # a critical alarm takes no lines until the reset
-    g.ok("$TIN=9,0")
+    g.ok("$TIN=%d,0" % ch)
     time.sleep(0.05)        # servo alarm debouncing: 2 ms
     d = diag(g)
     ok &= check(d[OUT] & (1 << 9), "after the reset: servo reset pulse on OUT10: %s" % bin(d[OUT]))

@@ -223,11 +223,19 @@ extern volatile uint32_t hal_diag_pulse_ticks;
 // ---------------------------------------------------------------------------
 
 // Returns the number of timer counts in one PWM period, i.e. the maximum duty
-// value. Zero if the pin could not be configured for PWM.
-uint32_t hal_spindle_pwm_init(uint8_t pin, uint32_t frequency_hz);
+// value. Zero if the pin could not be configured for PWM. mode HAL_PWM_OFF
+// leaves the pin a plain output (the period is returned all the same: the
+// DAC's level is computed from the duty), HAL_PWM_INVERTED is active low.
+#define HAL_PWM_OFF       0
+#define HAL_PWM_ON        1
+#define HAL_PWM_INVERTED  2
+uint32_t hal_spindle_pwm_init(uint8_t pin, uint32_t frequency_hz, uint8_t mode);
 void hal_spindle_pwm_set(uint32_t duty_counts);
 void hal_spindle_pwm_off(void);
 void hal_spindle_dac_init(uint8_t pin);
+// An analog input (the operator panel's potentiometers): 0-4095, ratiometric
+// to the 3.3 V reference. Main loop only (it blocks for a conversion).
+uint16_t hal_analog_read(uint8_t pin);
 void hal_spindle_dac_set(uint32_t value_12bit);
 // Read back from the hardware, for $I: PWM duty in 0.1 %, DAC code 0-4095.
 uint32_t hal_spindle_pwm_readback(void);
@@ -244,6 +252,43 @@ void hal_mpg_init(uint8_t pin_a, uint8_t pin_b);
 uint16_t hal_mpg_count(void);
 // Test hook: the pulls of the two pins (true = up), leaving them on TIM8.
 void hal_mpg_test_levels(uint8_t pin_a, uint8_t pin_b, bool a_high, bool b_high);
+
+
+// ---------------------------------------------------------------------------
+// RS485 to the spindle VFD: USART2 on D18 (TX, PD5) and D19 (RX, PD6), both
+// alternate function 7, and the transceiver's driver enable on a GPIO
+// ---------------------------------------------------------------------------
+//
+// Half duplex, whole frames. hal_rs485_send() raises the driver enable,
+// switches the receiver off (no echo, whatever the transceiver does with its
+// ~RE) and hands the frame to the interrupt, which drops the enable again
+// once the last stop bit is out (TC). What comes back is collected by the
+// interrupt; the USART's receiver timeout marks the end of a frame after
+// 3.5 characters of silence (1.75 ms above 19200 baud), as Modbus RTU frames
+// it.
+
+// format: 0 8N1, 1 8N2, 2 8E1, 3 8O1, 4 8E2, 5 8O2 (Delta's 09-04 = 12 + format).
+#define HAL_RS485_FORMATS       6
+#define HAL_RS485_FRAME_MAX     64
+
+// False if the kernel clock cannot make the baud rate. Repeat calls with the
+// same parameters touch nothing.
+bool hal_rs485_init(uint32_t baud, uint8_t format, uint8_t de_pin);
+// USART2 off, its interrupt off, the driver enable low.
+void hal_rs485_stop(void);
+// Starts a frame (at most HAL_RS485_FRAME_MAX bytes) out. Drops anything
+// received so far.
+void hal_rs485_send(const uint8_t *frame, uint8_t len);
+// True until the last stop bit of the frame has left and the enable is low.
+bool hal_rs485_sending(void);
+// A complete received frame: its length (copied to buf), 0 if none yet, -1 if
+// it was broken (parity, framing, noise, overrun, longer than the buffer).
+int hal_rs485_frame(uint8_t *buf, uint8_t max);
+// Microseconds the line has been quiet (since the last byte either way),
+// saturating at 1 s.
+uint32_t hal_rs485_quiet_us(void);
+// USART2 kernel clock found by hal_rs485_init(), Hz (0: not running).
+uint32_t hal_rs485_clock_hz(void);
 
 
 // ---------------------------------------------------------------------------

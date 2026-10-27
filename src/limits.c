@@ -202,7 +202,7 @@ uint8_t limits_check_jog(float *target)
 static void limits_scan_isr(void)
 {
   uint32_t channels = io_read_channels();
-  uint32_t fn = io_functions(channels);
+  uint32_t fn = io_functions(channels) | panel_scan();   // the panel's START / HOLD count as inputs
 
   // The central STOP's second path (its own interrupt is the first), and the
   // supply of the drives.

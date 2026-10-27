@@ -841,6 +841,21 @@
 #define MPG_DEBOUNCE_MS        20     // selector settling time
 #define MPG_LED_BLINK_MS       250    // LED half period while blocked
 
+// Spindle VFD over RS485 / Modbus RTU (vfd.h). The drive is asked for its
+// status every VFD_POLL_MS (which also keeps its own communication watchdog
+// fed); an answer must begin within VFD_TIMEOUT_MS of the end of the request,
+// and a request is sent up to 1 + VFD_RETRIES times before the transaction
+// counts as failed. A drive that does not do what it was told (run, stop,
+// direction) for VFD_CONFIRM_MS is an alarm. "At speed" is an output
+// frequency within VFD_AT_SPEED_PERCENT of the set point (at least 0.5 Hz).
+// RS485_DE_SETUP_US: driver enable to the first start bit.
+#define VFD_POLL_MS            100
+#define VFD_TIMEOUT_MS         100
+#define VFD_RETRIES            2
+#define VFD_CONFIRM_MS         1000
+#define VFD_AT_SPEED_PERCENT   2
+#define RS485_DE_SETUP_US      3
+
 // Control inputs are pressed by hand, so they get a much longer settling time.
 // 100 scans is 10 ms at the default rate.
 #ifndef CONTROL_DEBOUNCE_SCANS

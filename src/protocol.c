@@ -310,6 +310,8 @@ static void protocol_service_machine()
 {
   st_power_service();
   outputs_service();
+  vfd_service();
+  panel_service();
   spindle_service();
   io_test_service();
   job_rt_service();

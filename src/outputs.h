@@ -1,6 +1,6 @@
 /*
   outputs.h - the switched output functions (spindle, coolant, AUX0-AUX5,
-              collet, reset pulses) on the universal channels OUT1-OUT12
+              collet, reset pulses) on the universal channels OUT1-OUT14
 
   Part of Grbl-Giga, a port of Grbl 1.1 to the Arduino GIGA R1 WiFi.
 
@@ -14,7 +14,7 @@
   Upstream Grbl drives the spindle and coolant pins straight from
   spindle_control.c and coolant_control.c, each with its own compile-time
   invert option. Here every output is a *function* (io.h, OUT_FN_*) that a
-  setting puts on one of the twelve channels ($80-$92), with one run-time
+  setting puts on one of the fourteen channels ($80-$92), with one run-time
   polarity mask ($93). This module remembers what every function was last
   told to do - which is what the display shows and what spindle_get_state()
   and coolant_get_state() report, instead of reading pins back - and writes

@@ -56,6 +56,7 @@
 #define EXEC_ALARM_HOMING_WRONG_SWITCH        20  // Homing hit the switch on the far side
 #define EXEC_ALARM_JOB_ERROR                  21  // A program from the USB stick stopped on a G-code error
 #define EXEC_ALARM_DRIVER_POWER               22  // The drives lost their supply ($94, drvpwr.h)
+#define EXEC_ALARM_SPINDLE_COMM               23  // The VFD over RS485 does not answer, refuses or does not follow (vfd.h)
 
 // Override bit maps. Realtime bitflags to control feed, rapid, spindle, and coolant overrides.
 // Spindle/coolant and feed/rapids are separated into two controlling flag variables.

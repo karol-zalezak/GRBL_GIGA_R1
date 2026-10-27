@@ -213,7 +213,8 @@ static uint8_t system_test_switch(char *line)
 
 // Port addition: pulses on the reset outputs at a reset or an unlock. The
 // servos get one after ALARM:17 or while a servo alarm input is active, the
-// VFD while its fault input is active (PLAN.md part 1).
+// VFD while its fault input is active (PLAN.md part 1) - and, over RS485,
+// its fault reset command as well (vfd.h).
 void system_reset_pulses()
 {
   if ((system_last_alarm == EXEC_ALARM_MOTOR_FAULT) || limits_get_motor_alarm_state()) {
@@ -221,6 +222,7 @@ void system_reset_pulses()
   }
   if (spindle_fault_active()) {
     outputs_pulse(OUTPUT_VFD_RESET, settings.reset_pulse_ms);
+    vfd_fault_reset();
   }
 }
 
@@ -238,6 +240,11 @@ uint8_t system_execute_line(char *line)
   if ((strncmp(line, "$TMPG=", 6) == 0) || (strncmp(line, "$TMPW=", 6) == 0)) {  // any state
     return(system_test_mpg(line));
   }
+  if (strncmp(line, "$TVFD=", 6) == 0) { return(vfd_test(line)); }          // any state
+  if ((strncmp(line, "$TPNL=", 6) == 0) || (strncmp(line, "$TPOT=", 6) == 0)) {  // any state
+    return(panel_test(line));
+  }
+  if (strncmp(line, "$VFD", 4) == 0) { return(vfd_command(line)); }         // vfd.c checks the state
   if (line[1] == 'F') { return(job_command(line)); }                        // USB stick, job.c
   if (strcmp(line, "$SCREEN") == 0) {                                       // any state but motion
     if (sys.state & (STATE_CYCLE | STATE_JOG | STATE_HOMING)) { return(STATUS_IDLE_ERROR); }
@@ -299,6 +306,7 @@ uint8_t system_execute_line(char *line)
             if (!drvpwr_ok()) { return(STATUS_DRIVER_POWER); }
             system_reset_pulses();
             if (spindle_fault_active()) { return(STATUS_SPINDLE_FAULT); }
+            if (vfd_trouble()) { return(STATUS_VFD_TROUBLE); }
             // Block if safety door is ajar.
             if (system_check_safety_door_ajar()) { return(STATUS_CHECK_DOOR); }
             report_feedback_message(MESSAGE_ALARM_UNLOCK);
@@ -346,6 +354,7 @@ uint8_t system_execute_line(char *line)
           if (estop_latched || estop_active()) { return(STATUS_ESTOP_ACTIVE); }
           if (!drvpwr_ok()) { return(STATUS_DRIVER_POWER); }
           if (spindle_fault_active()) { return(STATUS_SPINDLE_FAULT); }
+          if (vfd_trouble()) { return(STATUS_VFD_TROUBLE); }
           {
             uint8_t cycles = helper_var;
             if (cycles == HOMING_CYCLE_ALL) {

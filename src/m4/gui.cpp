@@ -345,6 +345,7 @@ static const char *alarm_text(uint8_t code)
     case 20: return "Homing hit the switch at the far end";
     case 21: return "USB program stopped by a G-code error";
     case 22: return "Drive power was lost - HOME or UNLOCK";
+    case 23: return "VFD on RS485 silent or not following";
   }
   return "";
 }
@@ -400,6 +401,8 @@ static const char *error_text(uint8_t code)
     case 48: return "A program from the USB stick runs";
     case 49: return "PC is sending - start from the PC or wait";
     case 50: return "Drives have no power (or $95 not over)";
+    case 51: return "VFD on RS485 silent or not following";
+    case 52: return "VFD refused the request (exception)";
   }
   return "";
 }
@@ -461,6 +464,24 @@ static const set_meta_t set_meta[] = {
     "The S value that gives the lowest PWM duty. Smaller S values run at that minimum; S0 switches the output off.", 0 },
   { 32, T_BOOL, "Laser mode", "on = laser, off = spindle",
     "For lasers: moves no longer stop when S changes, and with M4 the power follows the actual speed, so corners do not burn. Leave off for a spindle.", 0 },
+  { 33, T_ENUM, "Spindle VFD (RS485)", "drive on D17-D19, Modbus",
+    "Also runs the spindle VFD over RS485 (Modbus RTU, shield v4): M3/M4/M5 and S, its status for at speed ($52) and faults. FWD/REV and 0-10 V keep working. Not with laser mode.", "none|Delta" },
+  { 34, T_INT, "VFD address", "Modbus address, 1-247",
+    "The drive's own Modbus address (Delta: 09-00).", 0 },
+  { 35, T_INT, "VFD baud rate", "bit/s, 1200-115200",
+    "Speed of the RS485 line; the drive must be set the same (Delta: 09-01, in kbps).", 0 },
+  { 36, T_ENUM, "VFD frame", "data, parity, stop bits",
+    "Character frame of the RS485 line, RTU. Delta: 09-04 = 12 + this value (13 = 8N2).", "8N1|8N2|8E1|8O1|8E2|8O2" },
+  { 37, T_FLOAT, "VFD frequency at $30", "Hz the drive runs at S=$30",
+    "The frequency sent to the drive for S = $30 (max spindle speed); lower S scale down linearly. A two-pole 24000 rpm spindle: 400 Hz.", 0 },
+  { 38, T_ENUM, "Spindle PWM on OUT13", "D6: output or PWM",
+    "Off: OUT13 (D6) is an output like the others. On: D6 carries the spindle / laser PWM (1 kHz). Inverted: for a TTL PWM input behind OUT13, which sinks to 0 V. Laser mode needs it.", "off|on|inverted" },
+  { 39, T_BOOL, "Panel buttons", "START HOLD STOP on A4-A6",
+    "The operator panel's buttons: START and HOLD as the inputs, STOP ends the program with a controlled stop - position kept, spindle off. Not the safety STOP on D49.", 0 },
+  { 44, T_ENUM, "Panel pot A0", "override it sets",
+    "What the potentiometer on A0 sets when it is turned: 10-100 % left, 100 % in the middle, up to 200 % right (rapid: 25/50/100 %). The PC and this screen can still change it.", "none|feed|spindle|rapid" },
+  { 45, T_ENUM, "Panel pot A1", "override it sets",
+    "What the potentiometer on A1 sets when it is turned, as for A0 ($44). Usually A0 feed, A1 spindle.", "none|feed|spindle|rapid" },
   { 40, T_ENUM, "Kinematics", "Cartesian or CoreXY",
     "CoreXY: the X driver runs belt motor A, the Y driver motor B; X and Y then home one after the other. Not possible together with a slave A axis.", "Cartesian|CoreXY" },
   { 41, T_ENUM, "CoreXY limits", "what $110/$120 limit",
@@ -562,7 +583,7 @@ static const set_meta_t set_meta[] = {
   { 92, T_OUTCH, "VFD reset", "output channel, 0 = none",
     "Output to the VFD's fault reset input: a $55 pulse at RESET or UNLOCK while the fault input is active, or from the I/O page.", 0 },
   { 93, T_OUT, "Output invert", "ticked = inverted",
-    "Outputs OUT1-OUT12 inverted at the pin. The display and the M-codes still show the logical state.", 0 },
+    "Outputs OUT1-OUT14 inverted at the pin. The display and the M-codes still show the logical state.", 0 },
   { 94, T_BOOL, "Driver power watch", "drive supply on D53",
     "Watches the supply of the drives on D53. Gone for 2 ms: steps end, Z brake on, ALARM:22 - the position is lost. HOME or UNLOCK once it is back for $95.", 0 },
   { 95, T_INT, "Driver power delay", "ms back before HOME/UNLOCK",
@@ -665,7 +686,7 @@ static void opt_label(const set_meta_t *m, int k, char *out)
   switch (m->type) {
     case T_AXES: out[0] = axis_letter[k]; out[1] = 0; break;
     case T_AUX: strcpy(out, "AUX"); cat_uint(out, k); break;
-    case T_OUT: strcpy(out, "OUT"); cat_uint(out, k + 1); break;
+    case T_OUT: cat_uint(out, k + 1); break;   // 14 small buttons: "OUT14" would not fit
     case T_INMASK:
       if (k < GSHM_N_IN) { strcpy(out, "IN"); cat_uint(out, k + 1); } else { strcpy(out, (k == GSHM_N_IN) ? "STOP" : "PWR"); }
       break;
@@ -856,12 +877,13 @@ static bool btn_visible(uint8_t id)
 }
 
 // Option buttons: four narrow ones per row for bits (seven small ones for the
-// 22 inputs of $79, the last one left of CANCEL), two wide ones for choices.
+// 22 inputs of $79, the last one left of CANCEL, and for the 14 outputs of
+// $93), two wide ones for choices.
 static void place_options(void)
 {
   int n = set_n_opts(&edit_info.m);
-  bool narrow = (edit_info.m.type == T_AXES || edit_info.m.type == T_AUX || edit_info.m.type == T_OUT);
-  bool tiny = (edit_info.m.type == T_INMASK);
+  bool narrow = (edit_info.m.type == T_AXES || edit_info.m.type == T_AUX);
+  bool tiny = (edit_info.m.type == T_INMASK || edit_info.m.type == T_OUT);
   for (int k = 0; k <= B_OPT_LAST - B_OPT0; k++) {
     if (k >= n) { place(B_OPT0 + k, 0, 0, 0, 0, PAGE_SET); continue; }
     if (tiny) { place(B_OPT0 + k, 340 + (k % 7) * 50, KEY_Y(k / 7), 46, 72, PAGE_SET); }
@@ -1838,12 +1860,13 @@ static void in_label(int ch, char *out, uint16_t *color)
   }
 }
 
-// What output channel ch (1-12) carries.
+// What output channel ch (1-14) carries. OUT13 is the spindle PWM with $38 > 0.
 static void out_label(int ch, char *out)
 {
   static const char *const names[GSHM_N_OUT_FN] = {
     "FWD", "REV", "FLD", "MIST", "AUX0", "AUX1", "AUX2", "AUX3", "AUX4", "AUX5", "COLL", "SRST", "VRST" };
   out[0] = 0;
+  if ((ch == 13) && set_byte(38)) { strcpy(out, "PWM"); return; }
   for (int f = 0; f < GSHM_N_OUT_FN; f++) {
     if (set_byte(80 + f) == ch) { strcpy(out, names[f]); return; }
   }
@@ -1881,20 +1904,20 @@ static void draw_in_row(int widget, int y, int first)
 
 static void draw_out_row(void)
 {
-  uint16_t out = st.outputs & 0x0FFFu;
-  uint32_t sig = fnv(io_assign_sig(80, GSHM_N_OUT_FN), &out, sizeof(out));
+  uint16_t out = st.outputs & GSHM_OUT_MASK;
+  uint32_t sig = fnv(io_assign_sig(80, GSHM_N_OUT_FN) ^ set_byte(38), &out, sizeof(out));
   if (!changed(W_OUT, sig)) { return; }
   cv_begin(LX, PAGE_Y + 116, LW, 54, C_PANEL);
   cv_text(6, 18, &font_small, "OUT", C_FAINT, C_PANEL);
   for (int k = 0; k < GSHM_N_OUT; k++) {
-    int cx = 40 + k * 53;
+    int cx = 34 + k * 46;
     bool on = (out >> k) & 1;
     char lbl[8], num[4] = "";
     out_label(k + 1, lbl);
     cat_uint(num, k + 1);
-    cv_disc(cx + 8, 14, 7, on ? C_GREEN : C_LED_OFF, C_PANEL);
-    cv_text(cx + 19, 3, &font_med, num, on ? C_TEXT : C_DIM, C_PANEL);
-    text_center(cx, 32, 50, &font_small, lbl[0] ? lbl : "-", lbl[0] ? (on ? C_TEXT : C_DIM) : C_FAINT, C_PANEL);
+    cv_disc(cx + 7, 14, 6, on ? C_GREEN : C_LED_OFF, C_PANEL);
+    cv_text(cx + 16, 3, &font_med, num, on ? C_TEXT : C_DIM, C_PANEL);
+    text_center(cx, 32, 44, &font_small, lbl[0] ? lbl : "-", lbl[0] ? (on ? C_TEXT : C_DIM) : C_FAINT, C_PANEL);
   }
   cv_end();
 }
