@@ -557,7 +557,9 @@ outputs and the 0–10 V on A12, which keep working, so either wiring works.
   the spindle should run or may still run; a command it refused (a Modbus
   exception — a frequency above its maximum, say); or a drive that does not
   run, stop, turn or take the frequency as told for 1 s (its run command on
-  the keypad, say) — Grbl repeats the command meanwhile. `$X` and `$H` are
+  the keypad, say) — Grbl repeats the command meanwhile; or a drive that ran
+  as told and then stopped by itself (its keypad STOP, a stop input): no
+  repeat then, which would start it again, but the alarm at once. `$X` and `$H` are
   refused with **`error:51`** while that lasts. A silent drive with the
   spindle off and standing is no alarm, it only shows in `$VFD` and `$I`. A
   drive that was told to run and then went silent keeps `$X` refused until it
@@ -566,19 +568,24 @@ outputs and the 0–10 V on A12, which keep working, so either wiring works.
 * Not with laser mode: `$32` and `$33` exclude each other (`error:5`).
   `$33`–`$36` change only with the spindle stopped (`error:8`).
 
-Delta drive (MS300 / C2000 parameter numbers; VFD-E: frequency source
-`02-00`=4, run source `02-01`=3 or 4):
+Delta drive parameters (the VFD-E numbers some of them differently):
 
-| Parameter | Value | |
-|---|---|---|
-| `00-20` | 1 | frequency command from RS485 |
-| `00-21` | 2 | run command from RS485 |
-| `09-00` | = `$34` | address |
-| `09-01` | = `$35` / 1000 | baud rate in kbps (9.6) |
-| `09-02` | 1 or 2 | on a communication loss: warn and ramp / coast to a stop |
-| `09-03` | 3.0 | communication timeout, s (Grbl asks every 0.1 s; a settings write to flash can hold the main loop for up to 2 s) |
-| `09-04` | 12 + `$36` | RTU frame: 13 = 8N2 (`$36=1`), 14 = 8E1 (`$36=2`) |
-| `01-00` | ≥ `$37` | highest output frequency |
+| | MS300 / C2000 | VFD-E | |
+|---|---|---|---|
+| frequency source | `00-20`=1 | `02-00`=3 | RS485 |
+| run command source | `00-21`=2 | `02-01`=3 | RS485; on the VFD-E 3 keeps the keypad STOP, 4 turns it off |
+| address | `09-00` | `09-00` | = `$34` |
+| baud rate | `09-01` in kbps (9.6) | `09-01`: 0 4800, 1 9600, 2 19200, 3 38400 | = `$35` |
+| on a communication loss | `09-02`=1 or 2 | `09-02`=1 or 2 | warn and ramp / coast to a stop; 3 (the VFD-E's factory setting) keeps running and leaves `09-03` without effect |
+| communication timeout | `09-03`=3.0 | `09-03`=3.0 | s; Grbl asks every 0.1 s, a settings write to flash can hold the main loop for up to 2 s |
+| RTU frame | `09-04` = 12 + `$36` (13 = 8N2) | `09-04`: 6 8N1, 3 8N2, 4 8E1, 5 8O1, 7 8E2, 8 8O2 | = `$36`; the VFD-E's factory 0 is Modbus ASCII, which Grbl does not speak |
+| highest output frequency | `01-00` | `01-00` | ≥ `$37` |
+
+On the VFD-E the RS485 is its RJ-45 socket: pin 5 SG+ to A, pin 4 SG− to B,
+pin 3 GND (pin 2 feeds the keypad, leave it free); the VFD\*E\*C models
+(CANopen) have it on other pins. `$VFD=R0900,5` reads back `09-00`–`09-04`,
+`$VFD=R0200,2` the VFD-E's `02-00`/`02-01` and `$VFD=R0100` its `01-00`
+(0.01 Hz).
 
 **`$VFD`** prints what Grbl knows:
 
@@ -588,8 +595,9 @@ Delta drive (MS300 / C2000 parameter numbers; VFD-E: frequency source
 `link` OFF (`$33=0`), WAIT (no answer yet), OK, LOST; `want` the command and
 frequency Grbl wants; `drive` what the drive reports: run state, set point,
 output frequency; `err` its error code, `st` its status word (2101H, hex);
-`remote=3` frequency and run command both from RS485 (`00-20`/`00-21` right);
-`trouble` 1 silent, 2 refused, 3 not following; then the transactions, their
+`remote=3` frequency and run command both from RS485 (`00-20`/`00-21`, on
+the VFD-E `02-00`/`02-01`, right);
+`trouble` 1 silent, 2 refused, 3 not following, 4 stopped by itself; then the transactions, their
 retries, failures and exceptions (count / last code), and the USART2 kernel
 clock in MHz. **`$VFD=R2100,4`** reads up to 8 registers, **`$VFD=W2000,12`**
 writes one — address and value hexadecimal, Idle or Alarm only; `$VFD=R0900`
@@ -646,7 +654,8 @@ For tests without a machine (all used by `tests/test_io.py`):
   at 400 Hz/s; an error it reported stays latched until its fault reset), 2
   in fault with error code (default 2; the fault reset does nothing while it
   lasts), 3 silent, 4 every second answer broken, 5 ignores run and stop
-  (keypad control); 0 the port again (`tests/test_vfd.py`).
+  (keypad control), 6 its keypad STOP pressed once (it stops, and runs again
+  when told: mode 1 afterwards); 0 the port again (`tests/test_vfd.py`).
 
 * `$SPLASH[=ms]` shows the splash screen again, for at least ms (default
   3000) — for screenshots.
@@ -964,10 +973,10 @@ New status codes: `error:39` collet open, `40` STOP active, `41` limit switch
 held in that direction, `42` channel already used, `43` VFD fault active,
 `44` collet interlock, `45` no limit switch at the homing end, `50` drives
 without supply (or not back for `$95` yet), `51` the VFD over RS485 is silent,
-refused a command or does not follow, `52` `$VFD=R/W` answered with a Modbus
+refused a command, does not follow or stopped by itself, `52` `$VFD=R/W` answered with a Modbus
 exception. New alarms: `ALARM:14` spindle not at speed, `17` servo alarm,
 `18` STOP, `19` VFD fault, `20` homing hit the far switch, `22` drive supply
-lost, `23` VFD over RS485 silent, refusing or not following.
+lost, `23` VFD over RS485 silent, refusing, not following or stopped by itself.
 
 Settings live in the STM32's internal flash, in two 128 kB sectors of bank 2
 just below the M4 program (0x08140000 and 0x08160000). Each change appends a
@@ -1124,7 +1133,9 @@ tests/
   test_mpg.py            handwheel: steps, OFF/blocked, following the wheel, dropped excess, axis change, soft limits
   test_panel.py          OUT13/OUT14, the PWM on OUT13 ($38), panel buttons and potentiometers
   test_vfd.py            spindle VFD over RS485: M3/M4/M5/S, at speed, fault, silent / refusing / keypad drive,
-                         $VFD; simulated ($TVFD) or the PC as the drive on a USB-RS485 adapter (--rs485)
+                         its keypad STOP, $VFD; simulated ($TVFD) or the PC as the drive on a USB-RS485 adapter (--rs485)
+  test_vfd_drive.py      a real Delta drive on the RS485 port (no motor): M3/M4/M5, S, override, $52 with
+                         reversal; --manual: its keypad STOP, the cable pulled
   demo_run.py            streams examples/demo_complex.nc and times it
 examples/                demo g-code; usb/ - test files for a stick
 docs/*.png               screenshots of the display ($SCREEN)
@@ -1366,7 +1377,8 @@ all passing:
 * Every second answer with a bad CRC: 13 retries, no failed transaction, no
   alarm. A drive that ignores run (keypad): `ALARM:23` after 1.07 s,
   `remote=0`. 650 Hz refused with exception 3 → `ALARM:23`, `$X` ok after
-  `$37=400`.
+  `$37=400`. Its keypad STOP while it runs (`$TVFD=6`): `ALARM:23` after
+  0.10 s, the drive not started again; `$X` and `M3` run it again.
 * `$VFD=R2100,4` → `0000,0503,4E20,4E20`; `$VFD=W2001,1388`; an unknown
   register → `[MSG:VFD exception 2]`, `error:52`. The collet is refused while
   the drive runs down and opens once it stands; `$32=1` with `$33=1` →
@@ -1376,6 +1388,29 @@ all passing:
   The real USART2 sent, timed out and retried with nothing connected (the
   transmit-complete interrupt drops D17); answers over the wire need a drive
   or `--rs485` with a USB-RS485 adapter.
+
+**With a real drive** (`test_vfd_drive.py`, a Delta VFD-E without a motor on
+the RS485 port, 9600 8N2; `01-00` = 60 Hz, so the test runs with `$37=60`;
+ramps 0.1 s), all passing:
+
+* Idle: 30 transactions in 3 s, no retry, `remote=3`; `$VFD=R2100,4` agrees
+  with `$VFD`; `09-00`–`09-04` read back as 1, 1, 3, 30, 3.
+* `M3 S12000` → FWD 30.00 Hz, at speed after 0.3 s; the override +10 % →
+  33.00 and back; `S6000` → 15.00; `M4` → REV 15.00; `M5` → output 0 after
+  0.2 s. 66 transactions, no retry, no exception.
+* `$52=60000`: `M4 S12000`, then `M3` (reversed at the same speed), then
+  `M3 S24000` — each ok after 0.25 s with the drive at speed in the new
+  direction. Before, the reversal answered at once with the drive still in
+  REV: the at-speed signal of the old direction ended the wait. A reversal
+  now waits out the 250 ms settle like an S change, and a Delta drive that
+  reports a direction change (2101H bits 4-3 01 or 10) is not at speed
+  (`test_io.py`: with the relay, 0.25 s too).
+* The drive's keypad STOP while it runs: Grbl used to repeat the run command
+  and the drive ran again within 0.6 s. Now `ALARM:23` at once, the drive
+  stays stopped; `M5`, `$X` and Grbl goes on.
+* The RS485 cable pulled while running: `link=LOST`, `ALARM:23`, `$X` →
+  `error:51`; plugged back in, Grbl stops the drive and `$X` is ok. 10 failed
+  transactions while it was out.
 
 **Shield v4: OUT13/OUT14, the PWM on OUT13, the operator panel**
 (`test_panel.py`, the panel through `$TPNL` / `$TPOT`), all passing:

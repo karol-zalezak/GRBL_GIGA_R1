@@ -266,8 +266,8 @@ void spindle_stop()
 
     // FWD and REV are exclusive: a VFD given both stops or faults.
     uint8_t new_ccw = (state != SPINDLE_ENABLE_CW);
-    uint8_t was_running = (outputs_get(OUTPUT_SPINDLE_FWD) || outputs_get(OUTPUT_SPINDLE_REV)) &&
-                          (new_ccw == spindle_dir_ccw);
+    uint8_t was_on = outputs_get(OUTPUT_SPINDLE_FWD) || outputs_get(OUTPUT_SPINDLE_REV);
+    uint8_t was_running = was_on && (new_ccw == spindle_dir_ccw);
     spindle_dir_ccw = new_ccw;
     outputs_set(spindle_dir_ccw ? OUTPUT_SPINDLE_FWD : OUTPUT_SPINDLE_REV, false);
 
@@ -288,7 +288,8 @@ void spindle_stop()
     #endif
     outputs_spindle_running(true);
     if (!was_running) {        // started, or reversed: spin up from scratch
-      spindle_at_speed_restart(false);
+      // Reversed: the at-speed signal may still show the old direction.
+      spindle_at_speed_restart(was_on);
       spindle_spinup_pending = true;
     }
 

@@ -27,7 +27,9 @@
 
   A poll that finds the drive doing something else than it acknowledged
   (power-cycled, switched to the keypad) makes Grbl send it again; if the
-  drive still disagrees after VFD_CONFIRM_MS, that is ALARM:23.
+  drive still disagrees after VFD_CONFIRM_MS, that is ALARM:23. A drive that
+  ran as told and then stopped by itself (its keypad STOP) is not told again:
+  ALARM:23 at once.
 */
 
 #include "grbl.h"
@@ -98,6 +100,7 @@ static struct {
   // The drive, from the last poll (in the common form the profile fills).
   uint8_t d_valid;
   uint8_t d_run;                 // VFD_* the drive runs (or was told by whoever controls it)
+  uint8_t d_reversing;           // still turning the other way after a reversal
   uint8_t d_turning;             // output frequency, or decelerating
   uint8_t d_standing;            // stopped with no output frequency
   uint8_t d_remote;              // bit 0 frequency, bit 1 run command from RS485
@@ -105,6 +108,8 @@ static struct {
   uint32_t t_mismatch;           // since the drive disagrees (0 = it agrees)
   uint8_t not_following;
   uint8_t refused;               // a run or frequency command came back as an exception
+  uint8_t followed;              // seen doing the command written last
+  uint8_t stopped;               // then stopped by itself (keypad STOP, a stop input)
 
   // $VFD=R / W
   volatile uint8_t raw_state;
@@ -189,7 +194,8 @@ static int mb_check(const uint8_t *q, const uint8_t *r, int n, uint16_t *regs)
 //          bit 8 frequency from RS485, bit 10 run command from RS485
 //   2102H  frequency command (F), 2103H output frequency (H), 0.01 Hz
 // The drive needs its frequency source (00-20) and run command source (00-21)
-// on RS485 and its 09-xx matching $34-$36 (README).
+// - on the VFD-E 02-00 and 02-01 - on RS485 and its 09-xx matching $34-$36
+// (README).
 
 #define DELTA_REG_CMD     0x2000
 #define DELTA_REG_FREQ    0x2001
@@ -218,6 +224,7 @@ static void profile_decode(const uint16_t *r)
   vfd.d_fcmd = r[2];
   vfd.d_fout = r[3];
   vfd.d_run = (run >= 2) ? ((dir <= 1) ? VFD_FWD : VFD_REV) : VFD_STOP;
+  vfd.d_reversing = (dir == 1) || (dir == 2);
   vfd.d_turning = (run & 1) || r[3];
   vfd.d_standing = (run == 0) && !r[3];
   vfd.d_remote = ((r[1] >> 8) & 1) | (((r[1] >> 10) & 1) << 1);
@@ -321,7 +328,7 @@ static void vfd_target(uint8_t *cmd, uint32_t *freq)
 uint8_t vfd_trouble()
 {
   if (!vfd.type) { return(false); }
-  if (vfd.refused || vfd.not_following) { return(true); }
+  if (vfd.refused || vfd.not_following || vfd.stopped) { return(true); }
   if (vfd.link != LINK_LOST) { return(false); }
   uint8_t cmd;
   uint32_t freq;
@@ -379,6 +386,11 @@ static void vfd_poll_result(const uint16_t *regs, uint32_t now)
     if ((vfd.d_run == cmd) && ((cmd == VFD_STOP) || (vfd.d_fcmd == freq))) {
       vfd.t_mismatch = 0;
       vfd.not_following = false;
+      vfd.followed = true;
+    } else if (vfd.followed && (cmd != VFD_STOP) && (vfd.d_run == VFD_STOP)) {
+      // It ran as told and then stopped: telling it again would override
+      // its keypad STOP. Not again - ALARM:23 instead.
+      vfd.stopped = true;
     } else {
       if (!vfd.t_mismatch) { vfd.t_mismatch = now | 1; }
       else if ((uint32_t)(now - vfd.t_mismatch) >= VFD_CONFIRM_MS) { vfd.not_following = true; }
@@ -388,7 +400,8 @@ static void vfd_poll_result(const uint16_t *regs, uint32_t now)
   }
 
   uint8_t at = false;
-  if (settled && !vfd.d_err && (cmd != VFD_STOP) && (vfd.d_run == cmd)) {
+  // Not while reversing: the output frequency is still the old direction's.
+  if (settled && !vfd.d_err && (cmd != VFD_STOP) && (vfd.d_run == cmd) && !vfd.d_reversing) {
     uint32_t tol = freq * VFD_AT_SPEED_PERCENT / 100;
     if (tol < 50) { tol = 50; }
     uint32_t diff = (vfd.d_fout > freq) ? vfd.d_fout - freq : freq - vfd.d_fout;
@@ -406,6 +419,7 @@ static void act_done(const uint16_t *regs, uint32_t now)
       vfd.done_cmd = vfd.act_value;
       vfd.refused = false;
       vfd.at_speed = false;
+      vfd.followed = false;
       break;
     case ACT_FREQ:
       vfd.done_freq = vfd.act_value;
@@ -484,6 +498,8 @@ void vfd_service()
     vfd.t_mismatch = 0;
     vfd.not_following = false;
     vfd.refused = false;
+    vfd.followed = false;
+    vfd.stopped = false;
   }
 
   if ((cmd == VFD_STOP) && (vfd.done_cmd != VFD_STOP)) { act_start(ACT_CMD, VFD_STOP, now); }
@@ -577,7 +593,7 @@ static void vfd_report()
   printPgmString(PSTR(" at="));
   print_uint8_base10(vfd_at_speed());
   printPgmString(PSTR(" trouble="));
-  print_uint8_base10(vfd.refused ? 2 : (vfd.not_following ? 3 : (vfd_trouble() ? 1 : 0)));
+  print_uint8_base10(vfd.refused ? 2 : (vfd.not_following ? 3 : (vfd.stopped ? 4 : (vfd_trouble() ? 1 : 0))));
   printPgmString(PSTR(" tx="));
   print_uint32_base10(vfd.n_tx);
   printPgmString(PSTR(" ok="));
@@ -691,7 +707,8 @@ uint8_t vfd_command(char *line)
 #define SIM_SILENT   3
 #define SIM_GARBLE   4
 #define SIM_KEYPAD   5
-#define SIM_N_MODES  6
+#define SIM_KSTOP    6           // once: its keypad STOP, then healthy (it runs when told again)
+#define SIM_N_MODES  7
 
 #define SIM_RAMP_PER_MS  40      // 0.01 Hz per ms = 400 Hz/s
 #define SIM_DELAY_MS     3
@@ -818,6 +835,10 @@ uint8_t vfd_test(char *line)
     sim.t = hal_millis();
   }
   sim_update(hal_millis());
+  if (m == SIM_KSTOP) {           // ramps down like a stop command
+    sim.running = false;
+    m = SIM_OK;
+  }
   sim_mode = m;
   if (m == SIM_FAULT) {           // trips: output off, the motor coasts
     sim.err = (uint16_t)code;

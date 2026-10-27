@@ -91,7 +91,7 @@ void vfd_service();
 uint8_t vfd_at_speed();
 uint8_t vfd_fault();
 uint8_t vfd_turning();     // output frequency, or not seen standing since a run command
-uint8_t vfd_trouble();     // ALARM:23 reason: no answer, refused, or not following
+uint8_t vfd_trouble();     // ALARM:23 reason: no answer, refused, not following, or stopped by itself
 uint8_t vfd_may_run();     // a run command went out and no stop has been seen since
 
 // $I: " vfd=<link 0 off, 1 waiting, 2 ok, 3 lost>/<error code>/<output 0.01 Hz>/<failed transactions>"
@@ -105,7 +105,8 @@ uint8_t vfd_command(char *line);
 // RS485 port. 0 off (the port again), 1 healthy (an error it reported stays
 // latched until its fault reset), 2 in fault with error code (default 2),
 // the reset ignored while it lasts, 3 silent, 4 every second answer broken,
-// 5 not under RS485 control (answers, but ignores run and stop).
+// 5 not under RS485 control (answers, but ignores run and stop), 6 its keypad
+// STOP pressed once (it stops, then runs when told again; mode 1 afterwards).
 uint8_t vfd_test(char *line);
 
 #endif

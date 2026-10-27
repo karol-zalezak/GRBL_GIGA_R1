@@ -14,6 +14,8 @@ Two ways to have a drive:
                      $TVFD=3          silent
                      $TVFD=4          every second answer broken (bad CRC)
                      $TVFD=5          answers, but ignores run/stop (keypad)
+                     $TVFD=6          its keypad STOP pressed once: it stops,
+                                      and runs again when told (then mode 1)
                      $TVFD=0          off: the RS485 port again
   --rs485 COMx     this PC is the Delta drive, on a USB-RS485 adapter wired to
                    the shield's RS485 terminals (A-A, B-B, GND) - or, without
@@ -33,6 +35,7 @@ and $VFD reports what Grbl believes:
   cut       the drive goes silent while cutting: hold, then ALARM:23, position kept
   garble    every second answer broken: retries, no alarm
   keypad    a drive that ignores run: ALARM:23 after VFD_CONFIRM_MS
+  kstop     the drive's keypad STOP while it runs: ALARM:23 at once, not restarted
   refused   a frequency the drive refuses (exception 3): ALARM:23
   raw       $VFD=R / $VFD=W
   interlock collet closed while the drive has output; $32 and $33 exclusive
@@ -87,7 +90,7 @@ class DeltaDrive(threading.Thread):
         self.addr, self.echo = addr, echo
         self.lock = threading.Lock()
         self.running, self.dir, self.fcmd, self.fout, self.err = False, 1, 0, 0, 0
-        self.mode = 1              # as $TVFD: 1 ok, 2 fault, 3 silent, 4 garble, 5 keypad
+        self.mode = 1              # as $TVFD: 1 ok, 2 fault, 3 silent, 4 garble, 5 keypad, (6 keypad STOP)
         self.flip = 0
         self.t = time.perf_counter()
         self.requests, self.bad_crc, self.answers = 0, 0, 0
@@ -97,6 +100,8 @@ class DeltaDrive(threading.Thread):
     def set_mode(self, mode, code=2):
         with self.lock:
             self.ramp()
+            if mode == 6:                  # keypad STOP, once
+                self.running, mode = False, 1
             self.mode = mode
             if mode == 2:
                 self.err, self.running, self.fout = code, False, 0
@@ -351,6 +356,7 @@ def t_fault(g, drv):
     ok &= check(v["err"] == "7" and v["want"].startswith("STOP"), "  err=%s, want %s" % (v["err"], v["want"]))
     r = unlock(g)
     ok &= check(r == b"error:43", "  $X while the cause lasts: %s (the fault reset it sends does nothing)" % r.decode())
+    time.sleep(0.2)                                   # the fault reset of that $X goes out first
     drv.mode(1)                                       # cause gone, error still latched
     time.sleep(0.3)
     v = vfd(g)
@@ -459,6 +465,28 @@ def t_keypad(g, drv):
     return ok
 
 
+def t_kstop(g, drv):
+    say("\ndrive's keypad STOP while it runs:")
+    ok = True
+    g.ok("M3 S12000")
+    wait_vfd(g, lambda v: hz(v["drive"])[2] == 200.0)
+    n0 = len(g.log)
+    t0 = time.perf_counter()
+    drv.mode(6)
+    ok &= check(wait_alarm(g, 23, n0, timeout=0.6), "ALARM:23 after %.2f s (no VFD_CONFIRM_MS)" % (time.perf_counter() - t0))
+    v = vfd(g)
+    ok &= check(v["want"].startswith("STOP"), "  spindle told to stop: want %s" % v["want"])
+    time.sleep(0.5)
+    v = vfd(g)
+    ok &= check(hz(v["drive"])[0] == "STOP" and hz(v["drive"])[2] == 0.0,
+                "  not started again: drive %s" % v["drive"])
+    ok &= check(unlock(g) == b"ok", "  $X: ok")
+    g.ok("M3 S12000")
+    v = wait_vfd(g, lambda v: hz(v["drive"])[0] == "FWD" and hz(v["drive"])[2] == 200.0)
+    ok &= check(hz(v["drive"])[0] == "FWD" and v["trouble"] == "0", "  M3 again: runs (drive %s)" % v["drive"])
+    return ok
+
+
 def t_refused(g, drv):
     say("\nfrequency the drive refuses:")
     ok = True
@@ -538,7 +566,7 @@ def prepare(g, drv):
 
 
 TESTS = [("run", t_run), ("atspeed", t_atspeed), ("fault", t_fault), ("silent", t_silent),
-         ("cut", t_cut), ("garble", t_garble), ("keypad", t_keypad), ("refused", t_refused),
+         ("cut", t_cut), ("garble", t_garble), ("keypad", t_keypad), ("kstop", t_kstop), ("refused", t_refused),
          ("raw", t_raw), ("interlock", t_interlock)]
 
 
@@ -590,8 +618,9 @@ def main():
             g.reset()
             g.cmd("$X")
             g.ok("$TVFD=0")
+            now = g.settings()
             for n in (33, 34, 35, 36, 37, 30, 31, 52, 54):
-                if n in keep:
+                if n in keep and now.get(n) != keep[n]:
                     r = g.cmd("$%d=%s" % (n, ("%g" % keep[n])))
                     if r[-1] != b"ok":
                         say("  could not restore $%d=%g: %s" % (n, keep[n], r[-1].decode()))

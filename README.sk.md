@@ -553,7 +553,10 @@ funguje ktorékoľvek zapojenie.
   bežať alebo ešte môže bežať; povel, ktorý menič odmietol (výnimka Modbus —
   napr. frekvencia nad jeho maximom); alebo menič, ktorý sa 1 s nerozbehne,
   nezastaví, neotočí smer alebo neprevezme frekvenciu (povel na chod má
-  z klávesnice a pod.) — Grbl medzitým povel opakuje. `$X` a `$H` sa dovtedy
+  z klávesnice a pod.) — Grbl medzitým povel opakuje; alebo menič, ktorý
+  bežal podľa povelu a potom zastavil sám (STOP na jeho klávesnici, vstup
+  stop): vtedy sa povel neopakuje, menič by sa znova rozbehol, ale hneď je
+  alarm. `$X` a `$H` sa dovtedy
   odmietajú s **`error:51`**. Nemý menič pri vypnutom a stojacom vretene nie
   je alarm, len ho ukáže `$VFD` a `$I`. Menič, ktorý dostal povel na chod
   a potom stíchol, drží `$X` odmietnuté, kým znova neodpovie (alebo `$33=0`):
@@ -561,19 +564,24 @@ funguje ktorékoľvek zapojenie.
 * Nie v laserovom režime: `$32` a `$33` sa vylučujú (`error:5`). `$33`–`$36`
   sa menia len pri zastavenom vretene (`error:8`).
 
-Menič Delta (čísla parametrov MS300 / C2000; VFD-E: zdroj frekvencie
-`02-00`=4, zdroj povelu na chod `02-01`=3 alebo 4):
+Parametre meniča Delta (VFD-E niektoré čísluje inak):
 
-| Parameter | Hodnota | |
-|---|---|---|
-| `00-20` | 1 | frekvencia z RS485 |
-| `00-21` | 2 | povel na chod z RS485 |
-| `09-00` | = `$34` | adresa |
-| `09-01` | = `$35` / 1000 | rýchlosť v kbps (9,6) |
-| `09-02` | 1 alebo 2 | pri strate komunikácie: varovanie a dobeh rampou / voľným dobehom |
-| `09-03` | 3,0 | časový limit komunikácie, s (Grbl sa pýta každých 0,1 s; zápis nastavení do flash môže zdržať hlavnú slučku až na 2 s) |
-| `09-04` | 12 + `$36` | rámec RTU: 13 = 8N2 (`$36=1`), 14 = 8E1 (`$36=2`) |
-| `01-00` | ≥ `$37` | najvyššia výstupná frekvencia |
+| | MS300 / C2000 | VFD-E | |
+|---|---|---|---|
+| zdroj frekvencie | `00-20`=1 | `02-00`=3 | RS485 |
+| zdroj povelu na chod | `00-21`=2 | `02-01`=3 | RS485; pri VFD-E 3 nechá STOP na klávesnici, 4 ho vypne |
+| adresa | `09-00` | `09-00` | = `$34` |
+| rýchlosť | `09-01` v kbps (9,6) | `09-01`: 0 4800, 1 9600, 2 19200, 3 38400 | = `$35` |
+| pri strate komunikácie | `09-02`=1 alebo 2 | `09-02`=1 alebo 2 | varovanie a dobeh rampou / voľným dobehom; 3 (výrobné nastavenie VFD-E) beží ďalej a `09-03` potom nemá účinok |
+| časový limit komunikácie | `09-03`=3,0 | `09-03`=3,0 | s; Grbl sa pýta každých 0,1 s, zápis nastavení do flash môže zdržať hlavnú slučku až na 2 s |
+| rámec RTU | `09-04` = 12 + `$36` (13 = 8N2) | `09-04`: 6 8N1, 3 8N2, 4 8E1, 5 8O1, 7 8E2, 8 8O2 | = `$36`; výrobné 0 pri VFD-E je Modbus ASCII, ten Grbl nevie |
+| najvyššia výstupná frekvencia | `01-00` | `01-00` | ≥ `$37` |
+
+Pri VFD-E je RS485 na jeho zásuvke RJ-45: pin 5 SG+ na A, pin 4 SG− na B,
+pin 3 GND (pin 2 napája klávesnicu, nechaj ho voľný); modely VFD\*E\*C
+(CANopen) ho majú na iných pinoch. `$VFD=R0900,5` prečíta späť
+`09-00`–`09-04`, `$VFD=R0200,2` parametre `02-00`/`02-01` meniča VFD-E
+a `$VFD=R0100` jeho `01-00` (0,01 Hz).
 
 **`$VFD`** vypíše, čo Grbl vie:
 
@@ -583,8 +591,8 @@ Menič Delta (čísla parametrov MS300 / C2000; VFD-E: zdroj frekvencie
 `link` OFF (`$33=0`), WAIT (zatiaľ žiadna odpoveď), OK, LOST; `want` povel
 a frekvencia, ktoré Grbl chce; `drive` čo hlási menič: stav chodu, žiadaná
 a výstupná frekvencia; `err` jeho kód poruchy, `st` jeho stavové slovo
-(2101H, hex); `remote=3` frekvencia aj povel na chod z RS485 (`00-20`/`00-21`
-správne); `trouble` 1 nemý, 2 odmietol, 3 neposlúcha; potom transakcie, ich
+(2101H, hex); `remote=3` frekvencia aj povel na chod z RS485 (`00-20`/`00-21`,
+pri VFD-E `02-00`/`02-01`, správne); `trouble` 1 nemý, 2 odmietol, 3 neposlúcha, 4 zastavil sám; potom transakcie, ich
 opakovania, zlyhania a výnimky (počet / posledný kód) a hodinový kmitočet
 USART2 v MHz. **`$VFD=R2100,4`** prečíta až 8 registrov, **`$VFD=W2000,12`**
 jeden zapíše — adresa a hodnota šestnástkovo, len v Idle alebo Alarm;
@@ -639,7 +647,8 @@ Na testy bez stroja (všetky používa `tests/test_io.py`):
   rozbieha 400 Hz/s; porucha, ktorú nahlásil, zostane zapamätaná do resetu
   poruchy), 2 v poruche s kódom (predvolene 2; reset poruchy kým trvá nič
   nerobí), 3 nemý, 4 každá druhá odpoveď pokazená, 5 ignoruje chod a stop
-  (ovládanie z klávesnice); 0 znova port (`tests/test_vfd.py`).
+  (ovládanie z klávesnice), 6 raz stlačený STOP na jeho klávesnici (zastaví
+  a keď dostane povel, znova beží: potom režim 1); 0 znova port (`tests/test_vfd.py`).
 
 * `$SPLASH[=ms]` znova ukáže úvodnú obrazovku, aspoň na ms (predvolene
   3000) — na snímky obrazovky.
@@ -956,11 +965,11 @@ Nové stavové kódy: `error:39` klieština otvorená, `40` STOP aktívne, `41`
 koncový spínač v tom smere zopnutý, `42` kanál už je použitý, `43` porucha
 meniča aktívna, `44` blokovanie klieštiny, `45` žiaden koncový spínač na
 konci homingu, `50` drivery bez napájania (alebo ešte nie `$95` späť), `51`
-menič na RS485 mlčí, odmietol povel alebo neposlúcha, `52` `$VFD=R/W`
+menič na RS485 mlčí, odmietol povel, neposlúcha alebo zastavil sám, `52` `$VFD=R/W`
 dostal výnimku Modbus. Nové alarmy: `ALARM:14` vreteno nedosiahlo otáčky,
 `17` alarm serva, `18` STOP, `19` porucha meniča, `20` homing narazil na
 vzdialený spínač, `22` strata napájania driverov, `23` menič na RS485 mlčí,
-odmieta alebo neposlúcha.
+odmieta, neposlúcha alebo zastavil sám.
 
 Nastavenia sú vo vnútornej flash STM32, v dvoch 128 kB sektoroch banky 2
 tesne pod programom M4 (0x08140000 a 0x08160000). Každá zmena pripíše 1 kB
@@ -1121,7 +1130,9 @@ tests/
   test_mpg.py            koliesko: kroky, OFF/blokované, sledovanie kolieska, zahodený nadbytok, zmena osi, softvérové limity
   test_panel.py          OUT13/OUT14, PWM na OUT13 ($38), tlačidlá a potenciometre panela
   test_vfd.py            menič cez RS485: M3/M4/M5/S, otáčky, porucha, nemý / odmietajúci / klávesnicový menič,
-                         $VFD; simulovaný ($TVFD) alebo PC ako menič na prevodníku USB-RS485 (--rs485)
+                         STOP na jeho klávesnici, $VFD; simulovaný ($TVFD) alebo PC ako menič na prevodníku USB-RS485 (--rs485)
+  test_vfd_drive.py      skutočný menič Delta na porte RS485 (bez motora): M3/M4/M5, S, korekcia, $52
+                         s reverzáciou; --manual: STOP na jeho klávesnici, vytiahnutý kábel
   demo_run.py            pošle examples/demo_complex.nc a zmeria čas
 examples/                ukážkový G-kód; usb/ - testovacie súbory pre kľúč
 docs/*.png               snímky displeja ($SCREEN)
@@ -1367,7 +1378,8 @@ všetko prechádza:
 * Každá druhá odpoveď so zlým CRC: 13 opakovaní, žiadna zlyhaná transakcia,
   žiaden alarm. Menič, ktorý ignoruje chod (klávesnica): `ALARM:23` po
   1,07 s, `remote=0`. 650 Hz odmietnuté výnimkou 3 → `ALARM:23`, `$X` ok po
-  `$37=400`.
+  `$37=400`. STOP na jeho klávesnici počas chodu (`$TVFD=6`): `ALARM:23` po
+  0,10 s, menič sa znova nerozbehne; `$X` a `M3` ho spustia znova.
 * `$VFD=R2100,4` → `0000,0503,4E20,4E20`; `$VFD=W2001,1388`; neznámy
   register → `[MSG:VFD exception 2]`, `error:52`. Klieština sa odmietne, kým
   menič dobieha, a otvorí sa, keď stojí; `$32=1` pri `$33=1` → `error:5`;
@@ -1377,6 +1389,30 @@ všetko prechádza:
   bez pripojeného meniča vysielal, čakal a opakoval (prerušenie „vysielanie
   dokončené“ púšťa D17); odpovede po vedení potrebujú menič alebo
   `--rs485` s prevodníkom USB-RS485.
+
+**So skutočným meničom** (`test_vfd_drive.py`, Delta VFD-E bez motora na
+porte RS485, 9600 8N2; `01-00` = 60 Hz, takže test beží s `$37=60`; rampy
+0,1 s), všetko prechádza:
+
+* V pokoji: 30 transakcií za 3 s, žiadne opakovanie, `remote=3`;
+  `$VFD=R2100,4` sa zhoduje s `$VFD`; `09-00`–`09-04` sa prečítajú ako 1, 1,
+  3, 30, 3.
+* `M3 S12000` → FWD 30,00 Hz, otáčky dosiahnuté po 0,3 s; korekcia +10 % →
+  33,00 a späť; `S6000` → 15,00; `M4` → REV 15,00; `M5` → výstup 0 po
+  0,2 s. 66 transakcií, žiadne opakovanie, žiadna výnimka.
+* `$52=60000`: `M4 S12000`, potom `M3` (reverzácia na rovnakých otáčkach),
+  potom `M3 S24000` — každé ok po 0,25 s s meničom na otáčkach v novom
+  smere. Predtým reverzácia odpovedala hneď, s meničom ešte v REV: čakanie
+  ukončil signál otáčok zo starého smeru. Reverzácia teraz počká 250 ms
+  ustálenia ako zmena S a menič Delta, ktorý hlási zmenu smeru (2101H bity
+  4-3 01 alebo 10), nemá otáčky dosiahnuté (`test_io.py`: s relé tiež
+  0,25 s).
+* STOP na klávesnici meniča počas chodu: Grbl predtým povel na chod zopakoval
+  a menič sa do 0,6 s znova rozbehol. Teraz hneď `ALARM:23`, menič zostane
+  stáť; `M5`, `$X` a Grbl pokračuje.
+* Vytiahnutý kábel RS485 počas chodu: `link=LOST`, `ALARM:23`, `$X` →
+  `error:51`; po zapojení Grbl menič zastaví a `$X` je ok. 10 zlyhaných
+  transakcií, kým bol vonku.
 
 **Shield v4: OUT13/OUT14, PWM na OUT13, panel obsluhy** (`test_panel.py`,
 panel cez `$TPNL` / `$TPOT`), všetko prechádza:

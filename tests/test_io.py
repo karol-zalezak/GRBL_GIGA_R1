@@ -329,6 +329,10 @@ def t_spindle(g):
     g.ok("S800")
     dt = time.monotonic() - t0
     ok &= check(0.2 < dt < 0.6, "S change: waits out the 250 ms settle: %.3f s" % dt)
+    t0 = time.monotonic()
+    g.ok("M4")
+    dt = time.monotonic() - t0
+    ok &= check(0.2 < dt < 0.6, "reversed: the relay still closed from FWD, waits out the settle: %.3f s" % dt)
     ok &= check(diag(g)["spindle"] == 2, "spindle=2 (at speed)")
 
     g.ok("G91 G1 X30 F600")
