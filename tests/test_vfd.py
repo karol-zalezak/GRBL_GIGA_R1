@@ -33,6 +33,7 @@ and $VFD reports what Grbl believes:
   fault     a drive fault: ALARM:19, $X refused, the fault reset clears it
   silent    a silent drive: nothing while off; ALARM:23 when running, $X refused
   cut       the drive goes silent while cutting: hold, then ALARM:23, position kept
+  resume    a hold with the spindle stopped in it resumes only with the drive at speed
   garble    every second answer broken: retries, no alarm
   keypad    a drive that ignores run: ALARM:23 after VFD_CONFIRM_MS
   kstop     the drive's keypad STOP while it runs: ALARM:23 at once, not restarted
@@ -432,6 +433,42 @@ def t_cut(g, drv):
     return ok
 
 
+def t_resume(g, drv):
+    say("\nhold resumed with the spindle stopped in it:")
+    ok = True
+    g.ok("$52=5000")
+    g.ok("M3 S12000", timeout=8)
+    for n, restart in enumerate((False, True)):
+        g.ok("G91 G1 X%d F600" % (20 if n == 0 else -20))     # 2 s
+        time.sleep(0.3)
+        g.write(b"!")
+        time.sleep(0.3)
+        g.write(b"\x9E")                     # spindle stop override: the drive runs down in 0.5 s
+        time.sleep(1.0)
+        x0 = g.query()[2]
+        if restart:
+            g.write(b"\x9E")                 # spindle START (OVR page), then the cycle START
+            time.sleep(0.1)
+        t0 = time.perf_counter()
+        g.write(b"~")
+        t_move = None
+        while time.perf_counter() - t0 < 3.0:
+            s = g.query()
+            if s and abs(s[2] - x0) > 0.005:
+                t_move = time.perf_counter() - t0
+                break
+            time.sleep(0.01)
+        v = vfd(g)
+        out = hz(v["drive"])[2]
+        ok &= check(t_move is not None and t_move > (0.3 if restart else 0.4) and abs(out - 200.0) <= 4.0,
+                    "%s: X moves after %s s, the drive then at %.2f Hz"
+                    % ("spindle START, cycle START" if restart else "cycle START", "%.2f" % t_move if t_move else "-", out))
+        g.wait_idle()
+    g.ok("$52=0")
+    g.ok("G90")
+    return ok
+
+
 def t_garble(g, drv):
     say("\nevery second answer broken:")
     ok = True
@@ -566,7 +603,7 @@ def prepare(g, drv):
 
 
 TESTS = [("run", t_run), ("atspeed", t_atspeed), ("fault", t_fault), ("silent", t_silent),
-         ("cut", t_cut), ("garble", t_garble), ("keypad", t_keypad), ("kstop", t_kstop), ("refused", t_refused),
+         ("cut", t_cut), ("resume", t_resume), ("garble", t_garble), ("keypad", t_keypad), ("kstop", t_kstop), ("refused", t_refused),
          ("raw", t_raw), ("interlock", t_interlock)]
 
 

@@ -92,6 +92,10 @@ uint8_t spindle_at_speed();         // at-speed input active (debounced)
 #define SPINDLE_STATUS_LOST      3  // at-speed lost while cutting
 #define SPINDLE_STATUS_FAULT     4  // VFD fault
 uint8_t spindle_status();
+uint8_t spindle_last_ccw();           // the last M3/M4 was M4
+void spindle_cancel_wait();           // ends the wait of an M3/M4 for the speed (touch STOP)
+uint8_t spindle_resume_wait();        // a hold's cycle start waits while true (protocol.c)
+void spindle_door_restore_wait();     // the safety door's restore: at speed, or $54
 uint8_t spindle_collet_is_open();
 uint8_t spindle_collet_set(uint8_t open);   // returns a status code
 

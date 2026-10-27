@@ -468,6 +468,7 @@ void protocol_exec_rt_system()
 
     // Execute a cycle start by starting the stepper interrupt to begin executing the blocks in queue.
     if (rt_exec & EXEC_CYCLE_START) {
+      uint8_t start_pending = false;   // Port: kept for the next pass while the spindle gets to speed
       // Block if called at same time as the hold commands: feed hold, motion cancel, and safety door.
       // Ensures auto-cycle-start doesn't resume a hold without an explicit user-input.
       if (!(rt_exec & (EXEC_FEED_HOLD | EXEC_MOTION_CANCEL | EXEC_SAFETY_DOOR))) {
@@ -490,6 +491,10 @@ void protocol_exec_rt_system()
             ((sys.state & STATE_HOLD) && (sys.suspend & SUSPEND_HOLD_COMPLETE) && !spindle_collet_is_open())) {
           if (sys.state == STATE_HOLD && sys.spindle_stop_ovr) {
             sys.spindle_stop_ovr |= SPINDLE_STOP_OVR_RESTORE_CYCLE; // Set to restore in suspend routine and cycle start after.
+          } else if ((sys.state & STATE_HOLD) && spindle_resume_wait()) {
+            // Port: the spindle was restored or its speed changed in the hold and is not
+            // at speed yet: resume once it is (or ALARM:14 after $52, which ends the hold).
+            start_pending = (sys.state & STATE_HOLD) ? true : false;
           } else {
             // Start cycle only if queued motions exist in planner buffer and the motion is not canceled.
             sys.step_control = STEP_CONTROL_NORMAL_OP; // Restore step control to normal operation
@@ -505,7 +510,7 @@ void protocol_exec_rt_system()
           }
         }
       }
-      system_clear_exec_state_flag(EXEC_CYCLE_START);
+      if (!start_pending) { system_clear_exec_state_flag(EXEC_CYCLE_START); }
     }
 
     if (rt_exec & EXEC_CYCLE_STOP) {
@@ -826,7 +831,9 @@ static void protocol_exec_rt_suspend()
                   bit_true(sys.step_control, STEP_CONTROL_UPDATE_SPINDLE_PWM);
                 } else {
                   spindle_set_state((restore_condition & (PL_COND_FLAG_SPINDLE_CW | PL_COND_FLAG_SPINDLE_CCW)), restore_spindle_speed);
-                  delay_sec(SAFETY_DOOR_SPINDLE_DELAY, DELAY_MODE_SYS_SUSPEND);
+                  // Port: until at speed ($52) or $54, instead of SAFETY_DOOR_SPINDLE_DELAY.
+                  spindle_door_restore_wait();
+                  if (sys.abort || (sys.state == STATE_ALARM)) { return; }   // ALARM:14: no coolant, no resume
                 }
               }
             }

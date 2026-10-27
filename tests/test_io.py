@@ -380,6 +380,59 @@ def t_spindle(g):
     return ok
 
 
+def t_resume(g):
+    say("\nhold resumed with the spindle stopped in it (the relay):")
+    ok = True
+    g.setup_bench(steps_per_mm=100, max_rate=6000, accel=1000)
+    s = g.settings()
+    at = int(s.get(77, 0)) or 11
+    g.ok("$77=%d" % at)
+    g.ok("$52=3000")
+    g.ok("$TIN=%d,1" % at)
+    time.sleep(0.05)
+    g.ok("M3 S500")
+    for close_ms in (2500, None):
+        # Grbl reads no line in a hold: the relay is scheduled beforehand. It
+        # opens once the spindle has stopped and closes at close_ms (never).
+        g.ok("G91 G1 X%d F600" % (30 if close_ms else -30))
+        t0 = time.monotonic()
+        g.ok("$TIN=%d,0,800" % at)
+        if close_ms:
+            g.ok("$TIN=%d,1,%d" % (at, close_ms))
+        g.write(b"!")
+        time.sleep(0.3)
+        g.write(b"\x9E")                     # spindle stop override
+        while time.monotonic() - t0 < 1.2:
+            time.sleep(0.02)
+        x0 = g.query()[2]
+        n0 = len(g.log)
+        g.write(b"~")
+        t_move = None
+        while time.monotonic() - t0 < 5.0:
+            s = g.query()
+            if s and abs(s[2] - x0) > 0.005:
+                t_move = time.monotonic() - t0
+                break
+            if s and s[1].startswith("Alarm"):
+                break
+            time.sleep(0.02)
+        if close_ms:
+            ok &= check(t_move is not None and abs(t_move - close_ms / 1000.0) < 0.15,
+                        "cycle START at 1.2 s, the relay back at 2.5 s: X moves at %s s"
+                        % ("%.2f" % t_move if t_move else "-"))
+            sync(g)
+        else:
+            alarm_reset(g)
+            s = g.query()
+            ok &= check(t_move is None and b"ALARM:14" in g.log[n0:] and abs(s[2] - x0) < 0.005,
+                        "the relay never back: ALARM:14 after $52, X stays at %.3f" % s[2])
+            recover(g)
+    g.ok("M5")
+    g.ok("$52=0")
+    g.ok("$TIN=0,0")
+    return ok
+
+
 def t_collet(g):
     say("\ncollet and M6:")
     ok = True
@@ -637,7 +690,7 @@ def t_drvpwr(g):
 
 
 TESTS = [("assign", t_assign), ("limits", t_limits), ("homing", t_homing), ("estop", t_estop),
-         ("spindle", t_spindle), ("collet", t_collet), ("brake", t_brake), ("dirdelay", t_dirdelay),
+         ("spindle", t_spindle), ("resume", t_resume), ("collet", t_collet), ("brake", t_brake), ("dirdelay", t_dirdelay),
          ("drvpwr", t_drvpwr)]
 
 

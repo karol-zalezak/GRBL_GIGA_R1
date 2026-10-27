@@ -3,7 +3,7 @@
 
 test_vfd.py checks the firmware against a simulated drive; this one runs the
 drive that is wired to the port and reports what it does. Spindle commands
-only, no axis moves.
+only, no axis moves - except with --motion.
 
 Before: the drive set for RS485 (README; VFD-E 02-00=3, 02-01=3, 09-00 = $34,
 09-01 = $35, 09-04=3 for $36=1 8N2), $33=1 and $34-$36 matching. THE DRIVE
@@ -16,13 +16,21 @@ RUNS: no motor on it, or a motor that may turn freely.
   reverse   M4: through zero to REV, at speed
   wait      $52: M3 at full speed, ok only once the drive is at speed
   stop      M5: the output ramps down to 0
+  touch     the OVR page while idle ($TOUCH): START = M3 at half the range
+            (S0), waits for the speed ($52); STOP = M5, also while it waits
   -- with --manual, you act on the drive while the script waits:
   keypad    STOP on the drive's keypad while it runs
   cable     the RS485 cable pulled while it runs, then plugged back
+  -- with --motion, X moves 10 mm and back (G91, F60):
+  resume    the move resumes only with the drive at speed ($52): after a
+            feed hold with the spindle stopped in it (0x9E) and the cycle
+            START; the same with the spindle started again (0x9E) first;
+            after the safety door ($76, through $TIN); and with $52=0 after
+            $54. Wants ramps long enough to see (01-09/01-10 several seconds).
 
 $30, $31, $37, $52 and $54 are set for the test and put back afterwards.
 
-    python test_vfd_drive.py [--port COM5] [--fmax 60] [--manual] [--yes]
+    python test_vfd_drive.py [--port COM5] [--fmax 60] [--manual] [--motion] [--yes]
 """
 import argparse
 import time
@@ -309,9 +317,170 @@ def t_cable(c):
     return ok
 
 
+def hold_status(g):
+    """State and X from ? - the only thing Grbl answers while it holds."""
+    s = g.query()
+    return (s[1], s[2]) if s else ("", 0.0)
+
+
+def wait_state(g, prefix, timeout=10.0):
+    t0 = time.perf_counter()
+    while time.perf_counter() - t0 < timeout:
+        st, x = hold_status(g)
+        if st.startswith(prefix):
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def resume_case(c, what, sign, stop, before_start, ramp_s, wait_s=None):
+    """One move held with its spindle stopped, then resumed: returns ok.
+
+    stop() stops it (and returns the state prefix to wait for before the
+    resume), before_start() runs right before the cycle START. wait_s: the
+    resume is expected after that long (the $54 case); otherwise only with
+    the drive at speed."""
+    g = c.g
+    f = c.f(RPM_MAX // 2)
+    tol = max(0.5, f * 0.02)
+    g.ok("G91 G1 X%d F60" % (10 * sign))
+    time.sleep(1.0)
+    ready = stop()
+    t0 = time.perf_counter()
+    while time.perf_counter() - t0 < ramp_s + 15.0:   # the spindle runs down meanwhile
+        st, x0 = hold_status(g)
+        if st.startswith(ready) and time.perf_counter() - t0 > ramp_s + 1.0:
+            break
+        time.sleep(0.05)
+    else:
+        return check(False, "%s: never %s (%s)" % (what, ready, st))
+    before_start()
+    t1 = time.perf_counter()
+    g.write(b"~")
+    t_move = None
+    while time.perf_counter() - t1 < ramp_s + 10.0:
+        st, x = hold_status(g)
+        if abs(x - x0) > 0.005:
+            t_move = time.perf_counter() - t1
+            break
+        time.sleep(0.02)
+    if t_move is None:
+        g.write(b"~")
+        g.wait_idle(timeout=30)
+        return check(False, "%s: the move did not resume (%s)" % (what, st))
+    v = report(g)                                     # running again: Grbl reads lines
+    out = hz(v["drive"])[2]
+    g.wait_idle(timeout=30)
+    if wait_s is not None:
+        return check(abs(t_move - wait_s) < 0.3,
+                     "%s: X moves after %.2f s (expected %.1f s), the drive at %.2f Hz" % (what, t_move, wait_s, out))
+    return check(abs(out - f) <= tol,
+                 "%s: X moves after %.2f s, the drive then at %.2f of %.2f Hz" % (what, t_move, out, f))
+
+
+def t_resume(c):
+    say("\nresume with the spindle stopped meanwhile: does the move wait for it?")
+    g = c.g
+    door = int(g.settings().get(76, 0))
+    g.ok("$52=30000")
+    t0 = time.perf_counter()
+    g.ok("M3 S%d" % (RPM_MAX // 2), timeout=40)
+    ramp_s = time.perf_counter() - t0
+    v = report(g)
+    ok = check(v["at"] == "1", "M3 S%d with $52: ok after %.1f s, at speed (drive %s)" % (RPM_MAX // 2, ramp_s, v["drive"]))
+
+    def hold_and_stop():
+        g.write(b"!")
+        wait_state(g, "Hold:0")
+        g.write(b"\x9E")                              # spindle stop override
+        return "Hold:0"
+
+    def nothing():
+        pass
+
+    def spindle_start():
+        g.write(b"\x9E")                              # the spindle START of the OVR page
+        time.sleep(0.2)
+
+    ok &= resume_case(c, "hold, spindle STOP, cycle START", 1, hold_and_stop, nothing, ramp_s)
+    ok &= resume_case(c, "hold, spindle STOP, spindle START, cycle START", -1, hold_and_stop, spindle_start, ramp_s)
+    if door:
+        def door_open():
+            g.ok("$TIN=%d,1" % door)                  # open: the spindle stops
+            g.ok("$TIN=%d,0,%d" % (door, int((ramp_s + 2.0) * 1000)))   # closed again later
+            return "Door:0"
+        ok &= resume_case(c, "safety door (IN%d) opened and closed, cycle START" % door, 1, door_open, nothing, ramp_s)
+        g.ok("$TIN=0,0")
+    else:
+        say("  (no door input assigned, $76=0: door skipped)")
+    g.ok("$52=0")
+    g.ok("$54=3000")
+    ok &= resume_case(c, "$52=0, $54=3000: hold, spindle STOP, cycle START", -1 if door else 1,
+                      hold_and_stop, nothing, ramp_s, wait_s=3.0)
+    g.ok("$54=0")
+    g.ok("G90")
+    return ok
+
+
+TOUCH_OVR, TOUCH_DRO = (287, 444), (59, 444)          # tabs (test_touch.py)
+TOUCH_SPIN_STOP, TOUCH_SPIN_START = (507, 254), (631, 254)
+
+
+def gc_spindle(g):
+    """The spindle word of $G; waits while Grbl is busy (an M3 waiting for the speed)."""
+    for l in g.cmd("$G", timeout=RAMP_TIMEOUT):
+        if l.startswith(b"[GC:"):
+            return next((w for w in l[4:-1].decode().split() if w in ("M3", "M4", "M5")), "")
+    return ""
+
+
+def t_touch(c):
+    say("\nthe OVR page's spindle START / STOP while idle ($52):")
+    g = c.g
+    if g.cmd("$TOUCH=%d,%d,100" % TOUCH_OVR)[-1] != b"ok":
+        say("  (no display: skipped)")
+        return True
+    time.sleep(0.4)
+    g.ok("$52=30000")
+    g.ok("M5 S0")
+    t0 = time.perf_counter()
+    g.ok("$TOUCH=%d,%d,700" % TOUCH_SPIN_START)            # fires after 0.5 s
+    time.sleep(0.6)
+    sp = gc_spindle(g)                                     # answered once M3 is through
+    dt = time.perf_counter() - t0
+    v = report(g)
+    ok = check(sp == "M3" and v["at"] == "1" and v["want"] == "FWD,%.2f" % c.f(RPM_MAX // 2),
+               "START held, S0: M3 at half of $31-$30, at speed after %.1f s (want %s, drive %s)"
+               % (dt, v["want"], v["drive"]))
+    g.ok("$TOUCH=%d,%d,100" % TOUCH_SPIN_STOP)
+    time.sleep(0.4)
+    v = report(g)
+    ok &= check(gc_spindle(g) == "M5" and v["want"].startswith("STOP"), "STOP: M5, the drive told to stop")
+    follow(g, lambda v: hz(v["drive"])[2] == 0.0)
+    # Grbl reads no line while the M3 waits: the STOP is queued beforehand,
+    # 2 s from now - 1.5 s into the spin-up.
+    g.ok("$TOUCH=%d,%d,700" % TOUCH_SPIN_START)
+    g.ok("$TOUCH=%d,%d,100,2000" % TOUCH_SPIN_STOP)
+    t1 = time.perf_counter() + 2.0
+    time.sleep(0.6)                                        # the START has fired: $G waits for its M3
+    sp = ""
+    while time.perf_counter() - t1 < 10.0 and sp != "M5":  # the M5 runs right after the M3 gave up
+        sp = gc_spindle(g)
+    dt = time.perf_counter() - t1
+    v = report(g)
+    ok &= check(sp == "M5" and dt < 1.0 and v["want"].startswith("STOP"),
+                "STOP while the START still waits: M5 after %.2f s, the drive at %.2f Hz told to stop"
+                % (dt, hz(v["drive"])[2]))
+    follow(g, lambda v: hz(v["drive"])[2] == 0.0)
+    g.ok("$52=0")
+    g.ok("$TOUCH=%d,%d,100" % TOUCH_DRO)
+    return ok
+
+
 TESTS = [("link", t_link), ("params", t_params), ("run", t_run), ("speed", t_speed),
-         ("reverse", t_reverse), ("wait", t_wait), ("stop", t_stop)]
+         ("reverse", t_reverse), ("wait", t_wait), ("stop", t_stop), ("touch", t_touch)]
 MANUAL = [("keypad", t_keypad), ("cable", t_cable)]
+MOTION = [("resume", t_resume)]
 
 
 def main():
@@ -320,6 +489,7 @@ def main():
     ap.add_argument("--only")
     ap.add_argument("--fmax", type=float, help="the drive's highest frequency, Hz (default: read 01-00)")
     ap.add_argument("--manual", action="store_true", help="also the keypad and cable tests")
+    ap.add_argument("--motion", action="store_true", help="also the resume test, which moves X")
     ap.add_argument("--yes", action="store_true", help="do not ask before running the drive")
     a = ap.parse_args()
 
@@ -350,7 +520,7 @@ def main():
             g.ok("$%d=%s" % (n, v))
         c = Ctx(g, fmax)
         v0 = report(g)
-        tests = TESTS + (MANUAL if a.manual else [])
+        tests = TESTS + (MANUAL if a.manual else []) + (MOTION if a.motion else [])
         only = a.only.split(",") if a.only else [n for n, _ in tests]
         for name, fn in tests:
             if name in only:

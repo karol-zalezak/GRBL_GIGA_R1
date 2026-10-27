@@ -469,6 +469,14 @@ shows `en=` and `brake=`.
   ignore, 1 feed hold (resume with START once it is back), 2 alarm after a
   controlled stop. `$52=0` (default): no waiting, the fixed `$54` instead. Not
   in laser mode.
+* **Resume with the spindle at speed.** A feed hold in which the spindle was
+  stopped (the spindle stop override, STOP on the OVR page) or its speed
+  changed, and a closed safety door, resume only once the spindle is back at
+  speed: the cycle START waits — still `Hold:0` — for the relay or the drive
+  (up to `$52` from the restart, then `ALARM:14`, position kept); without
+  at-speed monitoring until `$54` has passed since the restart (0: at once,
+  as upstream — the door then keeps upstream's 4 s). Upstream Grbl resumes the
+  move at once (the door after a fixed 4 s).
 * **VFD fault** (`$78`). FWD/REV drop at once — so that resetting the VFD
   cannot restart the spindle — motion stops with a feed hold, and once the
   machine stands, `ALARM:19` with the position kept. `$X` and `$H` are refused
@@ -836,14 +844,24 @@ The pages:
 * **DRO** — work position of X, Y, Z, A in large digits, machine position
   beside each, in mm/inch/degrees as appropriate (a slave A row says so), an
   **X=0 … A=0** button per axis (`G10 L20 P0`), and feed and spindle with
-  their overrides.
+  their overrides. The spindle line is the speed output, the direction, the
+  programmed S and the PWM duty — with the VFD over RS485 (`$33`) the
+  actual speed first, from the drive's output frequency (`$30`/`$37`):
+  `8879 / 12000 CW  S12000` while it spins up.
 * **JOG** — step size 0.01 / 0.1 / 1 / 10 mm (0.001 – 1 in when `$13=1`;
   degrees for a rotary A) or **CONT**, jog speed 5 / 10 / 25 / 50 / 100 % of
   each axis's `$11x`, the X Y Z A jog buttons, **HOME** (`$H`) and **ALL=0**,
   a compact DRO, and the handwheel's axis and step when `$96` is on.
 * **OVR** — feed −10 / −1 / 100 % / +1 / +10 (the ±buttons repeat when
-  held), rapid 25 / 50 / 100 %, spindle −10 / 100 % / +10 and spindle **STOP**
-  (in a feed hold), **FLOOD** and **MIST** toggles.
+  held), rapid 25 / 50 / 100 %, spindle −10 / 100 % / +10, spindle **STOP**
+  and **START** in a feed hold (Grbl's spindle stop override: STOP while the
+  spindle runs, START held 0.5 s once STOP has stopped it; the label then
+  says OFF; the cycle START also restarts it and resumes) — and while idle:
+  START (held 0.5 s) runs `M3`, or `M4` if the last one was M4, with the
+  programmed S, with S0 at the middle of `$31`–`$30` (`S12000` at
+  `$30=24000`), STOP is `M5`; both through the parser, so the modal state
+  follows and `$52` waits as for an `M3` from the PC (not in laser mode, not
+  with the collet open). **FLOOD** and **MIST** toggles.
 * **I/O** — IN1–IN20 and OUT1–OUT14 as indicators, each with the name of the
   function assigned to it; STOP, drives, Z brake and collet; **AUX0 – AUX5**
   as on/off buttons, **COLLET** (hold to open, tap to close) and the
@@ -885,7 +903,7 @@ is the safety relay, which cuts the power, and its signal contact on STOP
 over the page with what to do. Within that:
 
 * **Hold to act**: HOME and ALL=0 need the button held for 1 s, X=0 … A=0 for
-  0.8 s, UNLOCK and the AUX outputs for 0.5 s — a bar fills while you hold. A
+  0.8 s, UNLOCK, the AUX outputs and the spindle START for 0.5 s — a bar fills while you hold. A
   brushing finger does nothing but show a hint.
 * Buttons that make no sense in the current state are greyed out and do
   nothing (jog only when idle or jogging, zero only when idle, …).
@@ -1124,7 +1142,8 @@ tests/
   scope_dir.py           STEP and DIR on the scope: direction setup and hold at fast reversals, $56
   test_stream.py         g-code streaming: ramp, feed hold, sustained load
   test_axes.py           A axis modes, slave pulses, outputs, M62-M65, servo alarm
-  test_io.py             assignment, limits +/-, homing, STOP, spindle relays, collet, M6, brake, $56, driver power
+  test_io.py             assignment, limits +/-, homing, STOP, spindle relays and the resume of a hold, collet, M6,
+                         brake, $56, driver power
   test_job.py            programs from the USB stick (one must be in): check pass, M0, M6, errors,
                          STOP, rate, names with spaces, read-back
   usbjob.py              puts test files onto the stick as zz_<name> ($FW) and removes them, lists ($F)
@@ -1133,9 +1152,11 @@ tests/
   test_mpg.py            handwheel: steps, OFF/blocked, following the wheel, dropped excess, axis change, soft limits
   test_panel.py          OUT13/OUT14, the PWM on OUT13 ($38), panel buttons and potentiometers
   test_vfd.py            spindle VFD over RS485: M3/M4/M5/S, at speed, fault, silent / refusing / keypad drive,
-                         its keypad STOP, $VFD; simulated ($TVFD) or the PC as the drive on a USB-RS485 adapter (--rs485)
+                         its keypad STOP, the resume of a hold, $VFD; simulated ($TVFD) or the PC as the drive
+                         on a USB-RS485 adapter (--rs485)
   test_vfd_drive.py      a real Delta drive on the RS485 port (no motor): M3/M4/M5, S, override, $52 with
-                         reversal; --manual: its keypad STOP, the cable pulled
+                         reversal, the OVR page's spindle START/STOP; --manual: its keypad STOP, the cable pulled; --motion: the resume of a hold
+                         and of the door waits for the drive ($52, $54)
   demo_run.py            streams examples/demo_complex.nc and times it
 examples/                demo g-code; usb/ - test files for a stick
 docs/*.png               screenshots of the display ($SCREEN)
@@ -1368,6 +1389,9 @@ all passing:
 * `$52=5000`: `M3 S24000` (the drive ramps at 400 Hz/s) answers ok after
   1.05 s with `at=1`; `S12000` after 0.60 s (the 250 ms settle included);
   `$52=500` → `ALARM:14`, the drive told to stop.
+* A hold with the spindle stopped in it (`$52=5000`): the cycle START
+  resumes the move after 0.61 s, with the drive at 200.00 Hz; with the
+  spindle started first (the OVR page's START): after 0.46 s.
 * Drive error 7 → `ALARM:19`; `$X` → `error:43` while the cause lasts; once
   it is gone `$X` sends the fault reset, the error clears, `$X` ok.
 * Silent drive: spindle off → `link=LOST`, no alarm; `M3` → `ALARM:23`, `$X`
@@ -1411,6 +1435,26 @@ ramps 0.1 s), all passing:
 * The RS485 cable pulled while running: `link=LOST`, `ALARM:23`, `$X` →
   `error:51`; plugged back in, Grbl stops the drive and `$X` is ok. 10 failed
   transactions while it was out.
+* The other suites with the link running (`$33=1`, the drive polled every
+  100 ms throughout): `test_touch.py`, `test_io.py` (without `spindle` and
+  `collet`, which are for the relays and pass with `$33=0`), `test_axes.py`,
+  `test_panel.py` (`pwm` with `$33=0`: laser mode and `$33` exclude each
+  other), `test_steprate.py` (the same numbers: exact to 200 kHz on four
+  axes, the input scan at 100 %), `test_stream.py`, `test_comm.py`,
+  `test_mpg.py` and `test_corexy.py` all pass; 4429 transactions since the
+  start, no retry, no failure.
+* `--motion`, ramps 10 s for 0–400 Hz (`01-09`/`01-10`, `01-00`=400 Hz, so
+  40 Hz/s): `M3 S12000` ok after 5.1 s, the reversal REV → FWD at 200 Hz
+  after 9.9 s. A hold, the spindle stopped in it, the cycle START: X moves
+  after 5.05 s with the drive at 197.5 of 200 Hz — before, after 0.02 s at
+  0 Hz. The spindle started first (START on the OVR page): 4.83 s, the
+  drive at 197.6 Hz. The safety door (IN9, through `$TIN`) opened and
+  closed: 5.04 s, 197.5 Hz. `$52=0`, `$54=3000`: 3.02 s. 1347 transactions,
+  no retry. `test_io.py` `resume` with the relay: the cycle START at 1.2 s,
+  the relay back at 2.5 s → X moves at 2.53 s; the relay never back →
+  `ALARM:14` after `$52`, X kept.
+* The DRO page's spindle line with the drive spinning up:
+  `8879 / 12000 CW  S12000`, at speed `12000 / 12000 CW  S12000`.
 
 **Shield v4: OUT13/OUT14, the PWM on OUT13, the operator panel**
 (`test_panel.py`, the panel through `$TPNL` / `$TPOT`), all passing:
@@ -1474,6 +1518,14 @@ moves produce Z and A pulses only. Timing, at `$110=6000` (100 mm/s) and
   12.5, −3, 4, 7.
 * Feed +10, −10 twice, 100 %; +1 held 1 s → 105 % (auto-repeat); rapid 25 %;
   spindle +10; FLOOD and MIST toggle OUT3 and OUT4.
+* Spindle START while idle: tapped briefly → still `M5`; held with S0 →
+  `M3 S12000` (half of `$31`–`$30`), the spindle on; STOP → `M5`; held with
+  `S1000` → `M3 S1000`. With the VFD-E and `$52=30000` (`test_vfd_drive.py`
+  `touch`): START waits 5.6 s for the drive; STOP 1.5 s into the spin-up
+  ends the wait, `M5` 0.06 s later, the drive at 57.7 Hz told to stop.
+* `M3` and a move held (`!`): spindle STOP → `A:` without S, still
+  `Hold:0`; STOP again and START tapped briefly: still off; START held 0.7 s:
+  the spindle on again, still held; `~` finishes the move.
 * AUX1 tapped briefly: off; held: OUT6 on; held again: off.
 * COLLET tapped briefly: stays closed; held: OUT9 on, `M3` refused; tapped:
   closed. In a `T5 M6` pause (presses queued before, since Grbl reads no line

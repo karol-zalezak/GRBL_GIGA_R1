@@ -45,7 +45,7 @@ HOME, ZERO_ALL = pad(1, 1), pad(0, 2)
 ZERO = [(625, 93 + 66 * i) for i in range(4)]
 FEED = [(210 + 107 * i, 98) for i in range(5)]           # -10 -1 100 +1 +10
 RAPID = [(246 + 179 * i, 176) for i in range(3)]         # 25 50 100
-SPIN = [(224 + 134 * i, 254) for i in range(4)]          # -10 100 +10 STOP
+SPIN = [(205 + 96 * i, 254) for i in range(3)] + [(507, 254), (631, 254)]   # -10 100 +10 STOP START
 FLOOD, MIST = (291, 332), (559, 332)
 AUX = [(37 + 70 * i, 327) for i in range(6)]
 COLLET, SRV_RST, VFD_RST = (469, 327), (558, 327), (646, 327)
@@ -114,6 +114,29 @@ def ovr(g):
             return tuple(int(x) for x in m.groups())
         time.sleep(0.05)
     raise RuntimeError("no Ov: field")
+
+
+def modal(g):
+    """(spindle word M3/M4/M5, S) from $G."""
+    for l in g.ok("$G"):
+        m = re.match(rb"\[GC:(.*)\]", l)
+        if m:
+            words = m.group(1).decode().split()
+            sp = next((w for w in words if w in ("M3", "M4", "M5")), "")
+            s = next((float(w[1:]) for w in words if w.startswith("S")), 0.0)
+            return sp, s
+    raise RuntimeError("no [GC:] line")
+
+
+def spindle_on(g):
+    """Whether the status report's A: field has S or C (it comes with Ov:)."""
+    for _ in range(40):
+        s = status(g)
+        if "Ov:" in s[5]:
+            m = re.search(r"A:([A-Z]+)", s[5])
+            return bool(m and ("S" in m.group(1) or "C" in m.group(1)))
+        time.sleep(0.05)
+    return None
 
 
 def offsets(g):
@@ -292,6 +315,63 @@ def t_override(g):
     ok &= check(not (out & 0b1100), "both off again (%s)" % bin(out))
     touch(g, SPIN[3])
     ok &= check(True, "STOP while idle only shows a hint (checked on screen)")
+
+    # Spindle START / STOP while idle: M3 with the programmed S, with S0 the
+    # middle of $31-$30; M5.
+    st = g.settings()
+    half = (st.get(31, 0) + st.get(30, 1000)) / 2
+    g.ok("M5 S0")
+    touch(g, SPIN[4], ms=200)
+    ok &= check(modal(g)[0] == "M5", "START tapped briefly while idle: still %s" % modal(g)[0])
+    touch(g, SPIN[4], ms=700, settle=0.5)
+    m, s = modal(g)
+    ok &= check(m == "M3" and abs(s - half) < 0.5 and spindle_on(g),
+                "START held while idle, S0: %s S%g (half of $31-$30 = %g), spindle on" % (m, s, half))
+    touch(g, SPIN[3])
+    ok &= check(modal(g)[0] == "M5" and spindle_on(g) is False, "STOP while idle: M5, spindle off")
+    g.ok("S1000")
+    touch(g, SPIN[4], ms=700, settle=0.5)
+    m, s = modal(g)
+    ok &= check(m == "M3" and s == 1000, "START held with S1000: %s S%g" % (m, s))
+    touch(g, SPIN[3])
+
+    # Spindle STOP / START in a feed hold (Grbl's spindle stop override). Grbl
+    # reads no lines while it holds: the presses are queued beforehand, the
+    # hold and the resume are real-time bytes.
+    g.ok("M3 S1000")
+    g.ok("G91 G1 X20 F300")
+    time.sleep(0.4)
+    t0 = time.monotonic()
+    g.ok("$TOUCH=%d,%d,100,2000" % SPIN[3])      # STOP at 2 s
+    g.ok("$TOUCH=%d,%d,100,4000" % SPIN[3])      # STOP again at 4 s: nothing
+    g.ok("$TOUCH=%d,%d,100,4500" % SPIN[4])      # START tapped at 4.5 s: nothing
+    g.ok("$TOUCH=%d,%d,700,6500" % SPIN[4])      # START held at 6.5 s: runs again
+    g.write(b"!")
+
+    def spindle_at(t):
+        while time.monotonic() - t0 < t:
+            time.sleep(0.05)
+        for _ in range(40):                      # A: comes with Ov:, in some reports
+            s = status(g)
+            if "Ov:" in s[5]:
+                m = re.search(r"A:([A-Z]+)", s[5])
+                return s[1], bool(m and "S" in m.group(1))
+            time.sleep(0.05)
+        return s[1], None
+
+    st, on = spindle_at(0.5)
+    ok &= check(st.startswith("Hold") and on, "feed hold: %s, spindle on" % st)
+    st, on = spindle_at(2.3)
+    ok &= check(st.startswith("Hold") and on is False, "spindle STOP in the hold: %s, spindle off" % st)
+    st, on = spindle_at(5.0)
+    ok &= check(on is False, "STOP again and START only tapped: still off")
+    st, on = spindle_at(7.5)
+    ok &= check(st.startswith("Hold") and on, "START held 0.7 s: spindle on, still %s" % st)
+    g.write(b"~")
+    s = g.wait_idle()
+    ok &= check(s[1].startswith("Idle"), "cycle start: the move finished (%s)" % s[1])
+    g.ok("M5")
+    g.ok("G90")
     return ok
 
 

@@ -160,7 +160,7 @@ enum {
   B_HOME, B_ZERO_ALL,
   B_FEED_M10, B_FEED_M1, B_FEED_100, B_FEED_P1, B_FEED_P10,
   B_RAPID_25, B_RAPID_50, B_RAPID_100,
-  B_SPIN_M10, B_SPIN_100, B_SPIN_P10, B_SPIN_STOP,
+  B_SPIN_M10, B_SPIN_100, B_SPIN_P10, B_SPIN_STOP, B_SPIN_START,
   B_FLOOD, B_MIST,
   B_AUX0, B_AUX1, B_AUX2, B_AUX3, B_AUX4, B_AUX5, B_COLLET, B_SRV_RST, B_VFD_RST,
   B_SROW0, B_SROW1, B_SROW2, B_SROW3, B_SROW4, B_SROW5, B_SUP, B_SDOWN,
@@ -501,11 +501,11 @@ static const set_meta_t set_meta[] = {
   { 51, T_INT, "Spindle run-down", "ms before the collet opens",
     "The collet opens only after the spindle has been off this long, and while the at-speed relay (if assigned) reports no speed.", 0 },
   { 52, T_INT, "At-speed timeout", "ms, 0 = do not wait",
-    "After M3/M4 and every S change Grbl waits until the VFD's at-speed relay ($77) closes, at most this long; then ALARM:14. 0: no waiting, $54 instead.", 0 },
+    "After M3/M4 and every S change Grbl waits until the VFD's at-speed relay ($77) or the drive on RS485 reports the speed, at most this long; then ALARM:14. Also before a hold or a closed door resumes with the spindle started again. 0: no waiting, $54 instead.", 0 },
   { 53, T_ENUM, "At-speed lost", "reaction while cutting",
     "What happens when the at-speed relay opens while the spindle should be at speed (overload, belt slip): ignore it, feed hold, or alarm after a controlled stop.", "ignore|feed hold|alarm" },
   { 54, T_INT, "Spin-up delay", "ms after M3/M4",
-    "Fixed wait after M3/M4 when the at-speed relay is not used ($77=0 or $52=0).", 0 },
+    "Fixed wait after M3/M4 when the at-speed relay is not used ($77=0 or $52=0), and before a hold or a closed door resumes with the spindle started again.", 0 },
   { 55, T_INT, "Reset pulse", "ms, servo and VFD reset",
     "Length of the pulses on the servo reset ($91) and VFD reset ($92) outputs: at RESET or UNLOCK after a servo alarm or a VFD fault, or from the I/O page.", 0 },
   { 56, T_INT, "Direction setup", "us before the next step",
@@ -831,7 +831,8 @@ static void layout_init(void)
   // OVERRIDE page: four rows, a label panel and buttons.
   for (i = 0; i < 5; i++) { place(B_FEED_M10 + i, 160 + i * 107, PAGE_Y, 101, 72, PAGE_OVR); }
   for (i = 0; i < 3; i++) { place(B_RAPID_25 + i, 160 + i * 179, PAGE_Y + 78, 172, 72, PAGE_OVR); }
-  for (i = 0; i < 4; i++) { place(B_SPIN_M10 + i, 160 + i * 134, PAGE_Y + 156, 128, 72, PAGE_OVR); }
+  for (i = 0; i < 3; i++) { place(B_SPIN_M10 + i, 160 + i * 96, PAGE_Y + 156, 90, 72, PAGE_OVR); }
+  for (i = 0; i < 2; i++) { place(B_SPIN_STOP + i, 448 + i * 124, PAGE_Y + 156, 118, 72, PAGE_OVR); }
   for (i = 0; i < 2; i++) { place(B_FLOOD + i, 160 + i * 268, PAGE_Y + 234, 262, 72, PAGE_OVR); }
   // I/O page: the aux outputs, the collet and the reset pulses.
   for (i = 0; i < GSHM_N_AUX; i++) { place(B_AUX0 + i, LX + i * 70, IO_BTN_Y, 66, IO_BTN_H, PAGE_IO); }
@@ -935,7 +936,7 @@ static bool edit_valid(void)
 
 static uint16_t hold_time(uint8_t id)
 {
-  if (id == B_UNLOCK) { return 500; }
+  if (id == B_UNLOCK || id == B_SPIN_START) { return 500; }
   if (id == B_HOME || id == B_ZERO_ALL || id == B_FSTART) { return 1000; }
   if (id == B_FSTOP) { return 500; }
   if (id == B_FFORMAT) { return 3000; }
@@ -973,7 +974,22 @@ static bool btn_enabled(uint8_t id, const char **why)
     if ((id == B_JOG_AP || id == B_JOG_AN) && a_slave()) { w = "A is a slave motor ($42)"; }
     else if (!idle && !st_is(GSHM_STATE_JOG)) { w = "Jog only when idle"; }
   } else if (id == B_SPIN_STOP) {
-    if (!st_hold()) { w = "Spindle stop only in feed hold"; }
+    // In a hold both send Grbl's spindle stop override, which toggles: each
+    // only when its own way round applies. Idle: M5 / M3 (M4) with the S.
+    if (st_hold()) {
+      if (st.flags & GSHM_F_SPINDLE_STOP) { w = "Spindle stopped: START turns it on"; }
+    } else if (idle) {
+      // An M3 waiting for the speed is not modal yet, but already outputs.
+      if (!st.spindle_mode && st.spindle_rpm <= 0.0f) { w = "The spindle is off"; }
+    } else { w = "Spindle STOP when idle or in feed hold"; }
+  } else if (id == B_SPIN_START) {
+    if (st_hold()) {
+      if (!(st.flags & GSHM_F_SPINDLE_STOP)) { w = "Spindle start after its STOP in hold"; }
+    } else if (idle) {
+      if (st.spindle_mode || st.spindle_rpm > 0.0f) { w = "The spindle is on"; }
+      else if (st.flags & GSHM_F_COLLET) { w = "Collet open: close it first"; }
+      else if (set_byte(32)) { w = "Not in laser mode ($32=1)"; }
+    } else { w = "Spindle START when idle or in feed hold"; }
   } else if (id == B_FLOOD || id == B_MIST) {
     if (!idle && !st_is(GSHM_STATE_RUN) && !st_hold()) { w = "Coolant only when idle, running or held"; }
   } else if (id >= B_AUX0 && id <= B_AUX5) {
@@ -1132,7 +1148,10 @@ static void btn_down(uint8_t id)
     case B_SPIN_M10: send_rt(RT_SPIN_M10); break;
     case B_SPIN_100: send_rt(RT_SPIN_100); break;
     case B_SPIN_P10: send_rt(RT_SPIN_P10); break;
-    case B_SPIN_STOP: send_rt(RT_SPIN_STOP); break;
+    case B_SPIN_STOP:
+      if (st_hold()) { send_rt(RT_SPIN_STOP); }
+      else { send_rt(GSHM_CMD_SPINDLE_OFF); }   // idle: M5, also while a START still waits
+      break;
     case B_FLOOD: send_rt(RT_FLOOD); break;
     case B_MIST:  send_rt(RT_MIST); break;
     default:
@@ -1154,6 +1173,10 @@ static void btn_long(uint8_t id)
   else if (id == B_ZERO_ALL) { send_req(GSHM_REQ_ZERO_ALL, 0, 0, 0.0f); }
   else if (id >= B_ZERO0 && id <= B_ZERO3) { send_req(GSHM_REQ_ZERO, id - B_ZERO0, 0, 0.0f); }
   else if (id >= B_AUX0 && id <= B_AUX5) { send_rt(GSHM_CMD_AUX_TOGGLE + (id - B_AUX0)); }
+  else if (id == B_SPIN_START) {
+    if (st_hold()) { send_rt(RT_SPIN_STOP); }                   // the stop override again: restores
+    else { send_req(GSHM_REQ_SPINDLE, 0, 0, 1.0f); }            // idle: M3 / M4 with the S
+  }
   else if (id == B_COLLET) { send_req(GSHM_REQ_COLLET, 0, 0, 1.0f); }
   else if (id == B_FSTART) { send_req(GSHM_REQ_JOB_START, (uint8_t)file_sel, 0, (float)file_seq); }
   else if (id == B_FSTOP) { send_req(GSHM_REQ_JOB_STOP, 0, 0, 0.0f); }
@@ -1651,12 +1674,16 @@ static void draw_summary(void)
     cv_end();
   }
 
+  // With the VFD over RS485 the drive's output frequency gives the actual
+  // speed: "actual / set"; the PWM duty means nothing then.
   char sl[48] = "";
+  bool actual = st.spindle_actual >= 0.0f;
+  if (actual) { fmt_fixed(v, st.spindle_actual, 0); cat(sl, v); cat(sl, " / "); }
   fmt_fixed(v, st.spindle_rpm, 0);
   cat(sl, v);
   cat(sl, st.spindle_mode == 1 ? " CW" : (st.spindle_mode == 2 ? " CCW" : " OFF"));
   cat(sl, "  S"); fmt_fixed(v, st.spindle_prog, 0); cat(sl, v);
-  cat(sl, "  PWM "); cat_uint(sl, st.pwm_permille / 10); cat(sl, "%");
+  if (!actual) { cat(sl, "  PWM "); cat_uint(sl, st.pwm_permille / 10); cat(sl, "%"); }
   char so[16] = "";
   ovr_suffix(so, st.ovr_spindle);
   static const char *const sp_status[5] = { "", "SPIN-UP", "AT SPEED", "SPEED LOST", "VFD FAULT" };
@@ -1807,12 +1834,14 @@ static void draw_page_ovr(void)
   draw_plain(B_RAPID_50, "50%", &font_big, 0, st.ovr_rapid == 50, C_SEL, C_DARK, C_TEXT);
   draw_plain(B_RAPID_100, "100%", &font_big, 0, st.ovr_rapid == 100, C_SEL, C_DARK, C_TEXT);
 
+  bool sp_stopped = (st.flags & GSHM_F_SPINDLE_STOP) != 0;
   v[0] = 0; cat_uint(v, st.ovr_spindle); cat(v, "%");
-  draw_ovr_label(2, "SPINDLE", v, st.ovr_spindle == 100);
+  draw_ovr_label(2, "SPINDLE", sp_stopped ? "OFF" : v, !sp_stopped && st.ovr_spindle == 100);
   draw_plain(B_SPIN_M10, "-10", &font_big, 0, false, 0, 0, C_TEXT);
   draw_plain(B_SPIN_100, "100%", &font_big, 0, st.ovr_spindle == 100, C_SEL, C_DARK, C_TEXT);
   draw_plain(B_SPIN_P10, "+10", &font_big, 0, false, 0, 0, C_TEXT);
-  draw_plain(B_SPIN_STOP, "STOP", &font_big, "in hold", (st.flags & GSHM_F_SPINDLE_STOP) != 0, C_AMBER, C_DARK, C_TEXT);
+  draw_plain(B_SPIN_STOP, "STOP", &font_big, st_hold() ? "in hold" : "M5", false, 0, 0, C_TEXT);
+  draw_plain(B_SPIN_START, "START", &font_big, "hold", true, RGB(50, 200, 100), C_TEXT, C_TEXT);
 
   const char *cl = (st.coolant == 3) ? "M7 M8" : (st.coolant & 1) ? "M8" : (st.coolant & 2) ? "M7" : "off";
   draw_ovr_label(3, "COOLANT", cl, true);

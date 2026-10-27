@@ -53,6 +53,7 @@ uint16_t spindle_pwm_max_value = 0;
 #endif
 static uint8_t spindle_dir_ccw = 0;   // direction of the last M3/M4
 static uint8_t spindle_spinup_pending = false;   // started since the last wait ($54)
+static uint32_t spindle_spinup_t0 = 0;           // hal_millis() when it was started
 static void spindle_at_speed_restart(uint8_t was_running);
 
 
@@ -291,6 +292,7 @@ void spindle_stop()
       // Reversed: the at-speed signal may still show the old direction.
       spindle_at_speed_restart(was_on);
       spindle_spinup_pending = true;
+      spindle_spinup_t0 = hal_millis();
     }
 
   }
@@ -359,6 +361,7 @@ static void spindle_at_speed_restart(uint8_t was_running)
 {
   if (!spindle_at_speed_used() || !(outputs_get(OUTPUT_SPINDLE_FWD) || outputs_get(OUTPUT_SPINDLE_REV))) {
     as_state = AS_OFF;
+    as_sync_wait = false;      // a held resume (spindle_resume_wait) has nothing to wait for
     return;
   }
   #ifdef VARIABLE_SPINDLE
@@ -493,8 +496,12 @@ void spindle_service()
 
 // Called by spindle_sync() after M3/M4 or an S change: wait until the spindle
 // is at speed (or the fixed $54 has passed).
+static volatile uint8_t as_cancel = false;   // the touch screen's STOP ends the wait (display.c)
+void spindle_cancel_wait() { as_cancel = true; }
+
 static void spindle_wait_at_speed(uint8_t state)
 {
+  as_cancel = false;
   if ((state == SPINDLE_DISABLE) || sys.abort) { return; }
   #ifdef VARIABLE_SPINDLE
     if (bit_istrue(settings.flags,BITFLAG_LASER_MODE)) { return; }
@@ -504,6 +511,7 @@ static void spindle_wait_at_speed(uint8_t state)
     while (as_state == AS_WAIT) {
       protocol_execute_realtime();
       if (sys.abort) { as_sync_wait = false; return; }
+      if (as_cancel) { break; }        // its M5 follows between two lines
       if ((uint32_t)(hal_millis() - as_t0) >= settings.at_speed_timeout_ms) {
         as_sync_wait = false;
         as_state = AS_OFF;
@@ -514,7 +522,72 @@ static void spindle_wait_at_speed(uint8_t state)
     }
     as_sync_wait = false;
   } else if (!spindle_at_speed_used() && settings.spinup_delay_ms && spindle_spinup_pending) {
-    delay_sec(settings.spinup_delay_ms / 1000.0f, DELAY_MODE_DWELL);
+    // As delay_sec(), but the touch screen's STOP ends it as well.
+    uint32_t t0 = hal_millis();
+    while (((uint32_t)(hal_millis() - t0) < settings.spinup_delay_ms) && !as_cancel) {
+      protocol_execute_realtime();
+      if (sys.abort) { break; }
+    }
+  }
+  spindle_spinup_pending = false;
+}
+
+
+uint8_t spindle_last_ccw() { return(spindle_dir_ccw); }
+
+
+// Port: a hold resumes only with the spindle at speed. Restoring it (the
+// spindle stop override) or changing its speed in the hold re-arms the
+// at-speed wait; the cycle start then waits for it - up to $52 from that
+// restart, then ALARM:14 - or, without at-speed monitoring, until $54 has
+// passed since the spindle started. Called by the cycle start of a hold, and
+// again on every pass while it returns true (the cycle start stays pending).
+uint8_t spindle_resume_wait()
+{
+  if (sys.abort) { return(false); }
+  #ifdef VARIABLE_SPINDLE
+    if (bit_istrue(settings.flags,BITFLAG_LASER_MODE)) { return(false); }
+  #endif
+  if (as_state == AS_WAIT) {
+    as_sync_wait = true;       // the timeout is this one's, not spindle_service()'s $53
+    if ((uint32_t)(hal_millis() - as_t0) < settings.at_speed_timeout_ms) { return(true); }
+    as_sync_wait = false;
+    as_state = AS_OFF;
+    spindle_alarm_stopped(EXEC_ALARM_SPINDLE_AT_SPEED);
+    return(true);
+  }
+  as_sync_wait = false;
+  if (!spindle_at_speed_used() && settings.spinup_delay_ms && spindle_spinup_pending &&
+      (outputs_get(OUTPUT_SPINDLE_FWD) || outputs_get(OUTPUT_SPINDLE_REV)) &&
+      ((uint32_t)(hal_millis() - spindle_spinup_t0) < settings.spinup_delay_ms)) {
+    return(true);
+  }
+  spindle_spinup_pending = false;
+  return(false);
+}
+
+
+// Port: the safety door's restore, after the spindle has been switched on
+// again. Upstream waits a fixed SAFETY_DOOR_SPINDLE_DELAY; here the spindle
+// must reach speed (at-speed monitoring: up to $52, then ALARM:14), or $54
+// passes if it is set. Returns early if the door opens again or on a reset.
+void spindle_door_restore_wait()
+{
+  if (spindle_at_speed_used()) {
+    as_sync_wait = true;
+    while (as_state == AS_WAIT) {
+      protocol_exec_rt_system();           // rt_system only: no nested suspend loop (as delay_sec)
+      if (sys.abort || (sys.suspend & SUSPEND_RESTART_RETRACT)) { break; }
+      if ((uint32_t)(hal_millis() - as_t0) >= settings.at_speed_timeout_ms) {
+        as_state = AS_OFF;
+        spindle_alarm_stopped(EXEC_ALARM_SPINDLE_AT_SPEED);
+        break;
+      }
+    }
+    as_sync_wait = false;
+  } else {
+    delay_sec(settings.spinup_delay_ms ? settings.spinup_delay_ms / 1000.0f : SAFETY_DOOR_SPINDLE_DELAY,
+              DELAY_MODE_SYS_SUSPEND);
   }
   spindle_spinup_pending = false;
 }

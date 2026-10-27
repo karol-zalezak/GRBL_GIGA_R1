@@ -45,6 +45,10 @@ static bool started = false;
 static bool touch_jog = false;           // a continuous jog from the touch screen runs
 static uint32_t touch_jog_alive = 0;     // last jog_alive seen
 static uint32_t touch_jog_alive_ms = 0;  // when it last changed
+static volatile bool touch_m3_waiting = false;   // the spindle START's M3/M4 waits for the speed
+static volatile bool touch_spindle_off = false;  // the spindle STOP (GSHM_CMD_SPINDLE_OFF), M5 pending
+static volatile bool touch_off_cut = false;      // ... and it ended that wait: M5 however late
+static volatile uint32_t touch_off_ms = 0;
 
 
 void display_init()
@@ -118,6 +122,12 @@ static void display_take_commands()
       // Off if the output is on now (whatever switched it on), on otherwise.
       // An output that follows the spindle ($46) stays on while it runs.
       outputs_aux_set(aux, !outputs_get(OUTPUT_AUX0 + aux));
+    } else if (c == GSHM_CMD_SPINDLE_OFF) {
+      // The M5 runs between two lines (display_touch_service); a START still
+      // waiting for the speed is ended here, so that it gets there at all.
+      touch_spindle_off = true;
+      touch_off_ms = hal_millis();
+      if (touch_m3_waiting) { touch_off_cut = true; spindle_cancel_wait(); }
     } else if ((c == CMD_RESET) || (c == CMD_STATUS_REPORT) || (c == CMD_CYCLE_START) ||
         (c == CMD_FEED_HOLD) || (c >= 0x80)) {
       grbl_serial_rx_char((uint8_t)c);
@@ -214,6 +224,27 @@ static uint8_t display_run_request(uint8_t code, uint8_t axis, int8_t dir, float
     case GSHM_REQ_COLLET:
       return(spindle_collet_set(value > 0.5f));
 
+    case GSHM_REQ_SPINDLE:
+      // The OVR page's spindle START while idle, through the parser so that
+      // the modal state follows (and M3 waits for the speed as from the PC):
+      // the direction of the last M3/M4, the programmed S - or, with S0, the
+      // middle of $31-$30.
+      if (alarm) { return(STATUS_SYSTEM_GC_LOCK); }
+      if (!idle) { return(STATUS_IDLE_ERROR); }
+      if (bit_istrue(settings.flags,BITFLAG_LASER_MODE)) { return(STATUS_SETTING_DISABLED); }   // no laser from a touch
+      strcpy(cmd, spindle_last_ccw() ? "M4" : "M3");
+      if (gc_state.spindle_speed <= 0.0f) {
+        strcat(cmd, "S");
+        append_float(cmd, (settings.rpm_min + settings.rpm_max) / 2.0f);
+      }
+      touch_spindle_off = false;
+      touch_m3_waiting = true;
+      {
+        uint8_t status = gc_execute_line(cmd);
+        touch_m3_waiting = false;
+        return(status);
+      }
+
     case GSHM_REQ_JOB_START: {
       grbl_job_t *jb = GRBL_JOB;
       // The listing must still be the one the finger chose from.
@@ -300,6 +331,20 @@ void display_touch_service()
     if (!started) { return; }
     grbl_shm_t *m = GRBL_SHM;
     if (m->m4_magic != GRBL_SHM_M4_MAGIC) { return; }
+    // The spindle STOP while idle: M5 - dropped if it waited (a dwell, a PC's
+    // M3), unless it ended the wait of the START before it.
+    if (touch_spindle_off) {
+      touch_spindle_off = false;
+      uint8_t status = STATUS_IDLE_ERROR;
+      if ((touch_off_cut || ((uint32_t)(hal_millis() - touch_off_ms) <= TOUCH_REQ_MAX_AGE_MS)) &&
+          (sys.state == STATE_IDLE) && (plan_get_current_block() == NULL)) {
+        char m5[3] = "M5";
+        status = gc_execute_line(m5);
+      }
+      touch_off_cut = false;
+      if (status != STATUS_OK) { display_note_error(status); }
+      if (sys.abort) { return; }
+    }
     uint8_t seq = m->req_seq;
     if (seq == m->req_done) { return; }
     hal_memory_barrier();
@@ -442,6 +487,9 @@ void display_service()
     m->feed_prog = gc_state.feed_rate;
     m->spindle_rpm = sys.spindle_speed;
     m->spindle_prog = gc_state.spindle_speed;
+    uint16_t fout;
+    m->spindle_actual = (vfd_output(&fout) && (settings.vfd_max_hz > 0.0f)) ?
+                        fout / 100.0f / settings.vfd_max_hz * settings.rpm_max : -1.0f;
     m->ovr_feed = sys.f_override;
     m->ovr_rapid = sys.r_override;
     m->ovr_spindle = sys.spindle_speed_ovr;

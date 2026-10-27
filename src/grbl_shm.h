@@ -38,7 +38,7 @@
 
 #define GRBL_SHM_ADDR       0x3800C000UL
 #define GRBL_SHM_MAGIC      0x47524742UL   // "GRGB"
-#define GRBL_SHM_VERSION    8
+#define GRBL_SHM_VERSION    9
 #define GRBL_SHM_M4_MAGIC   0x4D344433UL   // "M4D3" - changes with the layout of the M4 half
 
 // Machine state as the display shows it (a superset of Grbl's report states).
@@ -109,6 +109,7 @@
 // an aux output (M64/M65 P0-P5) and never reach the serial path.
 #define GSHM_CMD_AUX_TOGGLE 0xB0        // + n, n = 0-5
 #define GSHM_N_AUX          6
+#define GSHM_CMD_SPINDLE_OFF 0xB8       // idle: M5 - also ends the spin-up wait of a START before it
 
 // Touch actions that are commands underneath (req_code).
 #define GSHM_REQ_UNLOCK     1   // $X
@@ -122,6 +123,7 @@
 #define GSHM_REQ_JOB_START  9   // run file req_axis of the USB listing (req_value = its list_seq)
 #define GSHM_REQ_JOB_STOP   10  // STOP the program from the USB stick
 #define GSHM_REQ_USB_FORMAT 11  // format the USB stick
+#define GSHM_REQ_SPINDLE    12  // idle: M3/M4 with the programmed S (the STOP is GSHM_CMD_SPINDLE_OFF)
 
 // The settings on the $$ page, in the order of set_val[]: the global ones in
 // $$ order (SETTINGS_GLOBAL_NUMBERS in settings.h), then the axis settings.
@@ -157,6 +159,7 @@ typedef struct {
   float    feed_prog;       // programmed F, mm/min
   float    spindle_rpm;     // spindle speed being output
   float    spindle_prog;    // programmed S
+  float    spindle_actual;  // VFD over RS485: its output frequency in rpm ($30/$37); -1 = not known
 
   uint8_t  ovr_feed;        // percent
   uint8_t  ovr_rapid;

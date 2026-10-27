@@ -464,6 +464,14 @@ bez čakania. Predvolene 200/100/200 ms, skôr dlhšie, kým sa brzda nezmeria.
   (pokračovať tlačidlom START, keď je späť), 2 alarm po riadenom zastavení.
   `$52=0` (predvolené): žiadne čakanie, namiesto neho pevné `$54`. Nie
   v laserovom režime.
+* **Pokračovanie s vretenom na otáčkach.** Feed hold, v ktorom sa vreteno
+  zastavilo (spindle stop override, STOP na stránke OVR) alebo sa zmenili
+  jeho otáčky, a zatvorené bezpečnostné dvere pokračujú, až keď vreteno znova
+  dosiahne otáčky: START cyklu čaká — stále `Hold:0` — na relé alebo menič
+  (najviac `$52` od nového rozbehu, potom `ALARM:14`, poloha zostane); bez
+  sledovania otáčok, kým od rozbehu neuplynie `$54` (0: hneď ako v pôvodnom
+  Grbl — pri dverách potom zostanú pôvodné 4 s). Pôvodný Grbl pokračuje
+  v pohybe hneď (pri dverách po pevných 4 s).
 * **Porucha meniča** (`$78`). FWD/REV hneď spadnú — aby reset meniča nemohol
   vreteno znova roztočiť —, pohyb zastane cez feed hold a keď stroj stojí,
   `ALARM:19` so zachovanou polohou. `$X` a `$H` sa odmietajú s `error:43`, kým
@@ -829,14 +837,24 @@ Stránky:
 * **DRO** — pracovná poloha X, Y, Z, A veľkými číslicami, strojová poloha
   vedľa každej, v mm / palcoch / stupňoch podľa potreby (riadok podriadenej
   osi A to povie), tlačidlo **X=0 … A=0** pre každú os (`G10 L20 P0`) a posuv
-  a otáčky s ich korekciami.
+  a otáčky s ich korekciami. Riadok vretena ukazuje výstupné otáčky, smer,
+  programované S a striedu PWM — s meničom cez RS485 (`$33`) najprv skutočné
+  otáčky z výstupnej frekvencie meniča (`$30`/`$37`): `8879 / 12000 CW
+  S12000` počas rozbehu.
 * **JOG** — krok 0,01 / 0,1 / 1 / 10 mm (0,001 – 1 in pri `$13=1`; stupne pre
   rotačnú A) alebo **CONT**, rýchlosť posuvu 5 / 10 / 25 / 50 / 100 % z `$11x`
   každej osi, tlačidlá posuvu X Y Z A, **HOME** (`$H`) a **ALL=0**, kompaktné
   DRO a os a krok kolieska, keď je `$96` zapnuté.
 * **OVR** — posuv −10 / −1 / 100 % / +1 / +10 (tlačidlá ± sa pri podržaní
-  opakujú), rýchloposuv 25 / 50 / 100 %, otáčky −10 / 100 % / +10 a **STOP**
-  vretena (vo feed hold), prepínače **FLOOD** a **MIST**.
+  opakujú), rýchloposuv 25 / 50 / 100 %, otáčky −10 / 100 % / +10, **STOP**
+  a **START** vretena vo feed hold (spindle stop override Grbl: STOP, kým
+  vreteno beží, START podržaný 0,5 s, keď ho STOP zastavil; popis vtedy
+  ukazuje OFF; aj START cyklu ho znova spustí a pokračuje) — a v Idle:
+  START (podržať 0,5 s) spustí `M3`, alebo `M4`, ak bol posledný M4,
+  s naprogramovaným S, pri S0 na polovici `$31`–`$30` (`S12000` pri
+  `$30=24000`), STOP je `M5`; oboje cez parser, takže modálny stav sedí
+  a `$52` čaká ako pri `M3` z PC (nie v laserovom režime, nie pri otvorenej
+  klieštine). Prepínače **FLOOD** a **MIST**.
 * **I/O** — IN1–IN20 a OUT1–OUT14 ako indikátory, každý s menom priradenej
   funkcie; STOP, drivery, brzda Z a klieština; **AUX0 – AUX5** ako tlačidlá
   zap./vyp., **COLLET** (podržať na otvorenie, ťuknúť na zatvorenie)
@@ -878,7 +896,7 @@ kontakt na STOP (D49, `$57=1`); kým je STOP zablokované, displej ukazuje cez
 stránku červený pruh E-STOP s tým, čo treba urobiť. V rámci toho:
 
 * **Podržať na vykonanie**: HOME a ALL=0 treba podržať 1 s, X=0 … A=0 0,8 s,
-  UNLOCK a výstupy AUX 0,5 s — počas držania sa plní pruh. Letmý dotyk prsta
+  UNLOCK, výstupy AUX a START vretena 0,5 s — počas držania sa plní pruh. Letmý dotyk prsta
   nerobí nič, len ukáže radu.
 * Tlačidlá, ktoré v aktuálnom stave nedávajú zmysel, sú sivé a nerobia nič
   (posuv len v pokoji alebo počas posuvu, nulovanie len v pokoji, …).
@@ -1121,7 +1139,8 @@ tests/
   scope_dir.py           STEP a DIR na osciloskope: príprava smeru a držanie pri rýchlych zmenách smeru, $56
   test_stream.py         posielanie G-kódu: rampa, feed hold, trvalá záťaž
   test_axes.py           režimy osi A, impulzy podriadeného motora, výstupy, M62-M65, alarm serva
-  test_io.py             priradenie, koncáky +/-, homing, STOP, relé vretena, klieština, M6, brzda, $56, napájanie driverov
+  test_io.py             priradenie, koncáky +/-, homing, STOP, relé vretena a pokračovanie po hold, klieština, M6,
+                         brzda, $56, napájanie driverov
   test_job.py            programy z USB kľúča (jeden musí byť zastrčený): kontrolný prechod, M0, M6, chyby,
                          STOP, rýchlosť, mená s medzerami, spätné čítanie
   usbjob.py              dá testovacie súbory na kľúč ako zz_<meno> ($FW) a odstráni ich, vypíše ($F)
@@ -1130,9 +1149,11 @@ tests/
   test_mpg.py            koliesko: kroky, OFF/blokované, sledovanie kolieska, zahodený nadbytok, zmena osi, softvérové limity
   test_panel.py          OUT13/OUT14, PWM na OUT13 ($38), tlačidlá a potenciometre panela
   test_vfd.py            menič cez RS485: M3/M4/M5/S, otáčky, porucha, nemý / odmietajúci / klávesnicový menič,
-                         STOP na jeho klávesnici, $VFD; simulovaný ($TVFD) alebo PC ako menič na prevodníku USB-RS485 (--rs485)
+                         STOP na jeho klávesnici, pokračovanie po hold, $VFD; simulovaný ($TVFD) alebo PC ako
+                         menič na prevodníku USB-RS485 (--rs485)
   test_vfd_drive.py      skutočný menič Delta na porte RS485 (bez motora): M3/M4/M5, S, korekcia, $52
-                         s reverzáciou; --manual: STOP na jeho klávesnici, vytiahnutý kábel
+                         s reverzáciou, START/STOP vretena na stránke OVR; --manual: STOP na jeho klávesnici, vytiahnutý kábel; --motion: pokračovanie
+                         po hold a po dverách čaká na menič ($52, $54)
   demo_run.py            pošle examples/demo_complex.nc a zmeria čas
 examples/                ukážkový G-kód; usb/ - testovacie súbory pre kľúč
 docs/*.png               snímky displeja ($SCREEN)
@@ -1369,6 +1390,9 @@ všetko prechádza:
 * `$52=5000`: `M3 S24000` (menič sa rozbieha 400 Hz/s) odpovie ok po 1,05 s
   s `at=1`; `S12000` po 0,60 s (vrátane 250 ms ustálenia); `$52=500` →
   `ALARM:14`, menič dostane povel na zastavenie.
+* Hold so zastaveným vretenom (`$52=5000`): START cyklu pohne osou po
+  0,61 s, s meničom na 200,00 Hz; s vretenom spusteným najprv (START na
+  stránke OVR): po 0,46 s.
 * Porucha meniča 7 → `ALARM:19`; `$X` → `error:43`, kým príčina trvá; keď
   zmizne, `$X` pošle reset poruchy, porucha zmizne, `$X` ok.
 * Nemý menič: vreteno vypnuté → `link=LOST`, žiaden alarm; `M3` →
@@ -1413,6 +1437,25 @@ porte RS485, 9600 8N2; `01-00` = 60 Hz, takže test beží s `$37=60`; rampy
 * Vytiahnutý kábel RS485 počas chodu: `link=LOST`, `ALARM:23`, `$X` →
   `error:51`; po zapojení Grbl menič zastaví a `$X` je ok. 10 zlyhaných
   transakcií, kým bol vonku.
+* Ostatné sady pri bežiacej linke (`$33=1`, menič sa celý čas pýta každých
+  100 ms): `test_touch.py`, `test_io.py` (bez `spindle` a `collet`, tie sú
+  pre relé a prechádzajú s `$33=0`), `test_axes.py`, `test_panel.py` (`pwm`
+  s `$33=0`: laserový režim a `$33` sa vylučujú), `test_steprate.py` (tie
+  isté čísla: presne do 200 kHz na štyroch osiach, sken vstupov na 100 %),
+  `test_stream.py`, `test_comm.py`, `test_mpg.py` a `test_corexy.py` —
+  všetko prechádza; 4429 transakcií od štartu, žiadne opakovanie, žiadne
+  zlyhanie.
+* `--motion`, rampy 10 s na 0–400 Hz (`01-09`/`01-10`, `01-00`=400 Hz, teda
+  40 Hz/s): `M3 S12000` ok po 5,1 s, reverzácia REV → FWD pri 200 Hz po
+  9,9 s. Hold, v ňom zastavené vreteno, START cyklu: X sa pohne po 5,05 s
+  s meničom na 197,5 z 200 Hz — predtým po 0,02 s pri 0 Hz. Vreteno najprv
+  spustené (START na stránke OVR): 4,83 s, menič na 197,6 Hz. Bezpečnostné
+  dvere (IN9, cez `$TIN`) otvorené a zatvorené: 5,04 s, 197,5 Hz. `$52=0`,
+  `$54=3000`: 3,02 s. 1347 transakcií, žiadne opakovanie. `test_io.py`
+  `resume` s relé: START cyklu v 1,2 s, relé späť v 2,5 s → X sa pohne
+  v 2,53 s; relé nikdy späť → `ALARM:14` po `$52`, X zostane.
+* Riadok vretena na stránke DRO pri rozbehu meniča:
+  `8879 / 12000 CW  S12000`, na otáčkach `12000 / 12000 CW  S12000`.
 
 **Shield v4: OUT13/OUT14, PWM na OUT13, panel obsluhy** (`test_panel.py`,
 panel cez `$TPNL` / `$TPOT`), všetko prechádza:
@@ -1476,6 +1519,14 @@ a `$42=2` s CoreXY sa obe odmietnu s `error:5`.
 * Posuv +10, −10 dvakrát, 100 %; +1 podržané 1 s → 105 % (automatické
   opakovanie); rýchloposuv 25 %; otáčky +10; FLOOD a MIST prepínajú OUT3
   a OUT4.
+* START vretena v Idle: krátko ťuknutý → stále `M5`; podržaný pri S0 →
+  `M3 S12000` (polovica `$31`–`$30`), vreteno beží; STOP → `M5`; podržaný
+  pri `S1000` → `M3 S1000`. S VFD-E a `$52=30000` (`test_vfd_drive.py`
+  `touch`): START čaká 5,6 s na menič; STOP 1,5 s po začiatku rozbehu
+  ukončí čakanie, `M5` o 0,06 s, menič na 57,7 Hz dostane povel zastaviť.
+* `M3` a pozdržaný pohyb (`!`): STOP vretena → `A:` bez S, stále `Hold:0`;
+  znova STOP a krátko ťuknutý START: stále vypnuté; START podržaný 0,7 s:
+  vreteno znova beží, stále pozdržané; `~` dokončí pohyb.
 * AUX1 krátko ťuknuté: vypnuté; podržané: OUT6 zapnutý; podržané znova:
   vypnutý.
 * COLLET krátko ťuknuté: zostane zatvorená; podržané: OUT9 zapnutý, `M3`

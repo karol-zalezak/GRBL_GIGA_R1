@@ -91,6 +91,7 @@ void vfd_service();
 uint8_t vfd_at_speed();
 uint8_t vfd_fault();
 uint8_t vfd_turning();     // output frequency, or not seen standing since a run command
+uint8_t vfd_output(uint16_t *centi_hz);   // the drive's output frequency; false if not known now
 uint8_t vfd_trouble();     // ALARM:23 reason: no answer, refused, not following, or stopped by itself
 uint8_t vfd_may_run();     // a run command went out and no stop has been seen since
 

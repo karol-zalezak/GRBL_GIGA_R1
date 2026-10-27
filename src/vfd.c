@@ -305,6 +305,13 @@ uint8_t vfd_at_speed() { return(vfd.type ? vfd.at_speed : false); }
 uint8_t vfd_fault() { return(vfd.type ? vfd.fault : false); }
 uint8_t vfd_may_run() { return(vfd.type ? vfd.may_run : false); }
 
+uint8_t vfd_output(uint16_t *centi_hz)
+{
+  if (!vfd.type || !vfd.d_valid || (vfd.link != LINK_OK)) { return(false); }
+  *centi_hz = vfd.d_fout;
+  return(true);
+}
+
 uint8_t vfd_turning()
 {
   if (!vfd.type) { return(false); }
