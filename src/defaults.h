@@ -185,7 +185,7 @@
 #ifndef DEFAULT_VFD_MAX_HZ
   #define DEFAULT_VFD_MAX_HZ 400.0
 #endif
-// $38: PWM on OUT13 (D6). Off: OUT13 is an output like the others; the 0-10 V
+// $38: PWM on OUT7 (D6). Off: OUT7 is an output like the others; the 0-10 V
 // on A12 does not depend on it.
 #ifndef DEFAULT_SPINDLE_PWM
   #define DEFAULT_SPINDLE_PWM 0
@@ -217,10 +217,10 @@
   #define DEFAULT_IN_INVERT 0
 #endif
 // $80-$92: channel of each output function, in io.h order (0 = unused):
-// FWD, REV, flood, mist, AUX0-AUX5, collet, servo reset, VFD reset. OUT13
+// FWD, REV, flood, mist, AUX0-AUX5, collet, servo reset, VFD reset. OUT7
 // stays free for the spindle PWM ($38).
 #ifndef DEFAULT_OUT_FUNC
-  #define DEFAULT_OUT_FUNC { 1, 2, 3, 4,  5, 6, 7, 8, 12, 14,  9, 10, 11 }
+  #define DEFAULT_OUT_FUNC { 1, 2, 3, 4,  5, 6, 8, 9, 13, 14,  10, 11, 12 }
 #endif
 // $93: inverted outputs.
 #ifndef DEFAULT_OUT_INVERT

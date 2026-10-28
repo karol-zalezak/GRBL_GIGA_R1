@@ -307,6 +307,7 @@ def t_spindle(g):
     # The VFD's relays on whatever inputs $77/$78 put them (shield v4: IN11/IN12).
     s = g.settings()
     at, flt = int(s.get(77, 0)) or 11, int(s.get(78, 0)) or 12
+    vr = int(s.get(92, 0)) or 12             # the VFD reset output (shield v4: OUT12)
     g.ok("$77=%d" % at)
     g.ok("$78=%d" % flt)
     g.ok("$52=1500")
@@ -367,8 +368,8 @@ def t_spindle(g):
     ok &= check(b"ALARM:19" in seen and d["out"][0] & 0b11 == 0, "fault: ALARM:19, FWD/REV off: out=%s" % (d["out"],))
     r = g.cmd("$X")
     d = diag(g)
-    ok &= check(r[-1] == b"error:43" and d["out"][0] & (1 << 10),
-                "$X refused while in fault, VFD reset pulse on OUT11: %s out=%s" % (r[-1].decode(), d["out"]))
+    ok &= check(r[-1] == b"error:43" and d["out"][0] & (1 << (vr - 1)),
+                "$X refused while in fault, VFD reset pulse on OUT%d: %s out=%s" % (vr, r[-1].decode(), d["out"]))
     g.ok("$TIN=%d,0" % flt)
     time.sleep(0.1)
     r = g.cmd("$X")
@@ -437,6 +438,7 @@ def t_collet(g):
     say("\ncollet and M6:")
     ok = True
     g.setup_bench(steps_per_mm=100, max_rate=6000, accel=1000)
+    cl = int(g.settings().get(90, 0)) or 10   # the collet output (shield v4: OUT10)
     g.ok("$52=0")
     g.ok("$51=300")
     g.ok("M3 S100")
@@ -448,7 +450,7 @@ def t_collet(g):
     time.sleep(0.4)
     r = g.cmd("$COLLET=1")
     d = diag(g)
-    ok &= check(r[-1] == b"ok" and d["out"][0] & (1 << 8), "after the run-down: open, OUT9 on: out=%s" % (d["out"],))
+    ok &= check(r[-1] == b"ok" and d["out"][0] & (1 << (cl - 1)), "after the run-down: open, OUT%d on: out=%s" % (cl, d["out"]))
     r = g.cmd("M3 S100")
     ok &= check(r[-1] == b"error:39", "M3 while open: %s" % r[-1].decode())
     g.ok("$COLLET=0")

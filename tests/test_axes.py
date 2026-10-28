@@ -11,7 +11,7 @@ masks in $I (channels / functions).
   slave      $42=2/3: A words refused, the A driver repeats X (or Y) pulses
   outputs    M3/M4/M5 (FWD/REV), M7/M8/M9, M62-M65 P0-P5, $46, $80-$93
   alarm      a servo alarm input ($68, IN9 via $TIN) stops Grbl with ALARM:17,
-             and the next reset pulses the servo reset output (OUT10)
+             and the next reset pulses the servo reset output (OUT11)
 
     python test_axes.py [--port COM5]
 """
@@ -138,36 +138,36 @@ def t_outputs(g):
     g.ok("M9")
     g.ok("M64 P1")
     g.ok("M64 P3")
-    ok &= check(out() == 0b10100000, "M64 P1, M64 P3: OUT6 + OUT8: %s" % bin(out()))
+    ok &= check(out() == 0b100100000, "M64 P1, M64 P3: OUT6 + OUT9: %s" % bin(out()))
     g.ok("M65 P1")
     g.ok("G1 X5 F600")
     g.ok("M62 P2")          # waits for the X move, then switches
-    ok &= check(out() == 0b11000000, "M65 P1, M62 P2 after motion: OUT7 + OUT8: %s" % bin(out()))
+    ok &= check(out() == 0b110000000, "M65 P1, M62 P2 after motion: OUT8 + OUT9: %s" % bin(out()))
     g.ok("M64 P4")
-    ok &= check(out() == 0b100011000000, "M64 P4: AUX4 on OUT12: %s" % bin(out()))
+    ok &= check(out() == 0b1000110000000, "M64 P4: AUX4 on OUT13: %s" % bin(out()))
     aux5 = int(g.settings().get(89, 0))
     g.ok("$89=0")           # AUX5 without a channel (shield v4's default is OUT14)
     g.ok("M64 P5")
-    ok &= check((outfn() >> 9) & 1 and out() == 0b100011000000,
+    ok &= check((outfn() >> 9) & 1 and out() == 0b1000110000000,
                 "M64 P5: AUX5 on, no channel assigned: fn=%s ch=%s" % (bin(outfn()), bin(out())))
     out_bad = g.cmd("M64 P6")
     ok &= check(out_bad[-1].startswith(b"error:"), "M64 P6 (no such output) refused: %s" % out_bad[-1].decode())
-    g.ok("$93=4095")
-    ok &= check(out() == 0b100011000000, "$93=4095 inverts pins, logical state unchanged: %s" % bin(out()))
+    g.ok("$93=16383")
+    ok &= check(out() == 0b1000110000000, "$93=16383 inverts pins, logical state unchanged: %s" % bin(out()))
     g.ok("$93=0")
     # Re-assignment: one output, one function.
-    r = g.cmd("$84=11")
-    ok &= check(r[-1] == b"error:42", "$84=11 (OUT11 has the VFD reset) refused: %s" % r[-1].decode())
+    r = g.cmd("$84=12")
+    ok &= check(r[-1] == b"error:42", "$84=12 (OUT12 has the VFD reset) refused: %s" % r[-1].decode())
     g.ok("M2")
     sync(g)
     ok &= check(out() == 0, "M2 switches everything off: %s" % bin(out()))
     g.ok("$92=0")
-    g.ok("$84=11")
+    g.ok("$84=12")
     g.ok("M3 S100")
-    ok &= check(out() == 0b10000000001, "AUX0 moved to OUT11, M3: OUT1 + OUT11: %s" % bin(out()))
+    ok &= check(out() == 0b100000000001, "AUX0 moved to OUT12, M3: OUT1 + OUT12: %s" % bin(out()))
     g.ok("M5")
     g.ok("$84=5")
-    g.ok("$92=11")
+    g.ok("$92=12")
     g.ok("$89=%d" % aux5)
     g.ok("G0 X0")
     sync(g)
@@ -199,10 +199,10 @@ def t_alarm(g):
     g.ok("$TIN=%d,0" % ch)
     time.sleep(0.05)        # servo alarm debouncing: 2 ms
     d = diag(g)
-    ok &= check(d[OUT] & (1 << 9), "after the reset: servo reset pulse on OUT10: %s" % bin(d[OUT]))
+    ok &= check(d[OUT] & (1 << 10), "after the reset: servo reset pulse on OUT11: %s" % bin(d[OUT]))
     time.sleep(3.0)
     d = diag(g)
-    ok &= check(not d[OUT] & (1 << 9), "pulse over after $55 = 3 s: %s" % bin(d[OUT]))
+    ok &= check(not d[OUT] & (1 << 10), "pulse over after $55 = 3 s: %s" % bin(d[OUT]))
     g.ok("$55=500")
     g.ok("$X")
     s = g.query()

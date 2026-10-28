@@ -314,6 +314,28 @@ uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data)
 #define SETTINGS_V22_SIZE  ((offsetof(settings_t, drv_power_enable) + sizeof(uint8_t) + 3) & ~(size_t)3)
 #define SETTINGS_V23_SIZE  ((offsetof(settings_t, mpg_max_feed) + sizeof(float) + 3) & ~(size_t)3)
 #define SETTINGS_V24_SIZE  ((offsetof(settings_t, vfd_max_hz) + sizeof(float) + 3) & ~(size_t)3)
+#define SETTINGS_V25_SIZE  sizeof(settings_t)
+
+// Version 26 numbers the outputs as shield v4's terminals run: D6 (OUT13
+// before) is OUT7, D5 D4 D3 D2 D14 D15 (OUT7-OUT12 before) are OUT8-OUT13.
+// An older record keeps every function and every inversion on its pin.
+static uint8_t out_channel_v26(uint8_t ch)
+{
+  if (ch == 13) { return(7); }
+  if ((ch >= 7) && (ch <= 12)) { return(ch + 1); }
+  return(ch);
+}
+
+static void settings_renumber_outputs_v26()
+{
+  uint8_t f, ch;
+  uint16_t inv = 0;
+  for (f = 0; f < N_OUT_FUNCS; f++) { settings.out_func[f] = out_channel_v26(settings.out_func[f]); }
+  for (ch = 1; ch <= N_OUT_CHANNELS; ch++) {
+    if (settings.out_invert & (1U << (ch - 1))) { inv |= (1U << (out_channel_v26(ch) - 1)); }
+  }
+  settings.out_invert = inv;
+}
 
 // Reads Grbl global settings struct from EEPROM.
 uint8_t read_global_settings() {
@@ -324,10 +346,11 @@ uint8_t read_global_settings() {
     if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL, sizeof(settings_t)))) {
       return(false);
     }
-  } else if ((version >= 21) && (version <= 24)) {
+  } else if ((version >= 21) && (version <= 25)) {
     // An older version: the same record without what later versions appended.
     // Keep it, give the new settings their defaults, store it as current.
-    static const uint16_t old_size[4] = { SETTINGS_V21_SIZE, SETTINGS_V22_SIZE, SETTINGS_V23_SIZE, SETTINGS_V24_SIZE };
+    static const uint16_t old_size[5] = { SETTINGS_V21_SIZE, SETTINGS_V22_SIZE, SETTINGS_V23_SIZE,
+                                          SETTINGS_V24_SIZE, SETTINGS_V25_SIZE };
     size_t size = old_size[version - 21];
     if (!(memcpy_from_eeprom_with_checksum((char*)&settings, EEPROM_ADDR_GLOBAL, size))) {
       return(false);
@@ -348,11 +371,14 @@ uint8_t read_global_settings() {
       settings.vfd_baud = DEFAULT_VFD_BAUD;
       settings.vfd_max_hz = DEFAULT_VFD_MAX_HZ;
     }
-    // Before 25 D6 always carried the PWM: a laser keeps it.
-    settings.spindle_pwm = bit_istrue(settings.flags,BITFLAG_LASER_MODE) ? 1 : DEFAULT_SPINDLE_PWM;
-    settings.panel_buttons = DEFAULT_PANEL_BUTTONS;
-    settings.pot_func[0] = DEFAULT_POT1_FUNC;
-    settings.pot_func[1] = DEFAULT_POT2_FUNC;
+    if (version <= 24) {
+      // Before 25 D6 always carried the PWM: a laser keeps it.
+      settings.spindle_pwm = bit_istrue(settings.flags,BITFLAG_LASER_MODE) ? 1 : DEFAULT_SPINDLE_PWM;
+      settings.panel_buttons = DEFAULT_PANEL_BUTTONS;
+      settings.pot_func[0] = DEFAULT_POT1_FUNC;
+      settings.pot_func[1] = DEFAULT_POT2_FUNC;
+    }
+    settings_renumber_outputs_v26();
     write_global_settings();
   } else {
     return(false);
@@ -517,8 +543,8 @@ uint8_t settings_store_global_setting(uint8_t parameter, float value) {
         settings.vfd_max_hz = value;
         break;
       case 38: {
-        // PWM on OUT13. On: the timer takes D6, so no output function may be
-        // on OUT13. Off: the laser loses its power control.
+        // PWM on OUT7. On: the timer takes D6, so no output function may be
+        // on OUT7. Off: the laser loses its power control.
         if (ivalue > 2) { return(STATUS_INVALID_STATEMENT); }
         if (!ivalue && bit_istrue(settings.flags,BITFLAG_LASER_MODE)) { return(STATUS_SETTING_DISABLED_LASER); }
         if (ivalue) {

@@ -160,13 +160,13 @@ Horný konektor a analóg:
 
 | Pin | Funkcia | | Pin | Funkcia |
 |---|---|---|---|---|
-| D13 | **OUT1** (vreteno FWD) | | D5 | **OUT7** (AUX2) |
-| D12 | **OUT2** (vreteno REV) | | D4 | **OUT8** (AUX3) |
-| D11 | **OUT3** (chladenie flood) | | D3 | **OUT9** (klieština) |
-| D10 | **OUT4** (chladenie mist) | | D2 | **OUT10** (reset serv) |
-| D9 | **OUT5** (AUX0, odsávanie) | | D14 | **OUT11** (reset meniča) |
-| D8 | **OUT6** (AUX1) | | D15 | **OUT12** (AUX4) |
-| D6 | **OUT13** — alebo PWM vretena (TIM4_CH2, 1 kHz, 60000 krokov) s `$38` | | D16 | **BRAKE** — brzda Z (pevné) |
+| D13 | **OUT1** (vreteno FWD, `M3`) | | D5 | **OUT8** (AUX2) |
+| D12 | **OUT2** (vreteno REV, `M4`) | | D4 | **OUT9** (AUX3) |
+| D11 | **OUT3** (chladenie flood, `M8`) | | D3 | **OUT10** (klieština) |
+| D10 | **OUT4** (chladenie mist, `M7`) | | D2 | **OUT11** (reset alarmu serv) |
+| D9 | **OUT5** (AUX0, odsávanie) | | D14 | **OUT12** (reset poruchy meniča) |
+| D8 | **OUT6** (AUX1) | | D15 | **OUT13** (AUX4) |
+| D6 | **OUT7** — alebo PWM vretena (TIM4_CH2, 1 kHz, 60000 krokov) s `$38` | | D16 | **BRAKE** — brzda Z (pevné) |
 | A2 | **OUT14** (AUX5) | | D7 | rezerva (len vstup: pull-up JTAG) |
 | A12 (DAC0) | otáčky vretena 0–3,3 V (0–10 V za shieldom) | | A0, A1 / A4–A6 | panel obsluhy: potenciometre / START, HOLD, STOP |
 
@@ -267,8 +267,10 @@ Shield periférií má **dvadsať vstupov IN1–IN20** a **štrnásť výstupov
 OUT1–OUT14**. Žiaden nemá pevnú úlohu: každá funkcia je nastavenie s číslom
 kanála, na ktorom je (0 = nepoužitá), takže zapojenie sa mení v `$$`, nie
 v zdrojovom kóde. Pevné sú len krok/smer/enable, centrálne STOP (D49), vstup
-napájania driverov (D53), brzda Z (D16), DAC (A12) a panel obsluhy; OUT13
-(D6) je pri `$38` > 0 namiesto toho PWM vretena. Predvolené hodnoty sú tie
+napájania driverov (D53), brzda Z (D16), DAC (A12) a panel obsluhy; OUT7
+(D6) je pri `$38` > 0 namiesto toho PWM vretena. Čísla výstupov idú podľa
+svoriek shieldu v4: J19 = OUT1–OUT7, J20 = OUT8–OUT14 (od verzie nastavení 26,
+viď nižšie). Predvolené hodnoty sú tie
 zo shieldu v4, ktorého alarmy serv prichádzajú na IN17–IN20 pri ich
 konektoroch DE-15; platia pre nové nastavenia (`$RST=$`) — aktualizácia
 ponechá priradenie, ktoré doska už má.
@@ -287,10 +289,10 @@ ponechá priradenie, ktoré doska už má.
 |---|---|---|
 | `$80`, `$81` | vreteno **FWD** (`M3`), **REV** (`M4`) — nikdy obe naraz | OUT1, OUT2 |
 | `$82`, `$83` | chladenie flood `M8`, mist `M7` | OUT3, OUT4 |
-| `$84`–`$89` | AUX0–AUX5 (`M62`–`M65 P0`–`P5`) | OUT5–OUT8, OUT12, OUT14 |
-| `$90` | otvorenie klieštiny | OUT9 |
-| `$91` | reset alarmu serv (impulz) | OUT10 |
-| `$92` | reset poruchy meniča (impulz) | OUT11 |
+| `$84`–`$89` | AUX0–AUX5 (`M62`–`M65 P0`–`P5`) | OUT5, OUT6, OUT8, OUT9, OUT13, OUT14 |
+| `$90` | otvorenie klieštiny | OUT10 |
+| `$91` | reset alarmu serv (impulz) | OUT11 |
+| `$92` | reset poruchy meniča (impulz) | OUT12 |
 | `$93` | **invertované výstupy**: bit n−1 = OUTn | 0 |
 
 Vstup je **aktívny, keď jeho optočlen vedie** (stiahne pin, ktorý má pull-up,
@@ -329,9 +331,9 @@ serv**. Vstupy sa odrušujú 2 ms, koncové spínače 0,3 ms, tlačidlá 10 ms.
 **Výstupy.** `M2`/`M30` a reset vypnú všetky výstupy. `$46` určuje výstupy
 AUX, ktoré sa zapnú vždy, keď beží vreteno (predvolene AUX0, odsávanie).
 `$93` invertuje výstupy na pine; displej a M-kódy ďalej ukazujú logický stav.
-Zmena priradenia funkciu najprv vypne. OUT13 (D6) a OUT14 (A2) sú výstupy
-ako ostatné — OUT13 len pri `$38=0`: so zapnutým PWM patrí D6 časovaču
-a na OUT13 sa nedá dať žiadna funkcia (`error:42`; `$38` > 0 sa odmietne,
+Zmena priradenia funkciu najprv vypne. OUT7 (D6) a OUT14 (A2) sú výstupy
+ako ostatné — OUT7 len pri `$38=0`: so zapnutým PWM patrí D6 časovaču
+a na OUT7 sa nedá dať žiadna funkcia (`error:42`; `$38` > 0 sa odmietne,
 kým tam nejaká je).
 
 ### Centrálne STOP (`$57`, D49)
@@ -664,9 +666,9 @@ Na testy bez stroja (všetky používa `tests/test_io.py`):
 Ani jeden neprežije vypnutie napájania; všetky zámerne prežijú reset.
 
 **Otáčky** vretena sú analógová úroveň na A12 — 0 V pri S0 a 3,3 V pri
-`$30` — a pri **`$38`** > 0 zároveň PWM na D6 (= OUT13, TIM4_CH2, 1 kHz).
-`$38`: **0** vypnuté (predvolené; D6 je OUT13), **1** PWM, **2** PWM obrátené
-na pine — pre vstup PWM s TTL úrovňou za OUT13, ktorý pri pine v jednotke
+`$30` — a pri **`$38`** > 0 zároveň PWM na D6 (= OUT7, TIM4_CH2, 1 kHz).
+`$38`: **0** vypnuté (predvolené; D6 je OUT7), **1** PWM, **2** PWM obrátené
+na pine — pre vstup PWM s TTL úrovňou za OUT7, ktorý pri pine v jednotke
 spína proti 0 V, takže ten vstup vidí správnu striedu (pozor: kým GIGA pin
 ešte neriadi, počas štartu, vidí taký vstup plný výkon; laser potrebuje
 vlastné povolenie). Laserový režim (`$32=1`) potrebuje PWM (inak
@@ -942,7 +944,7 @@ spínačov a sondy — každý vstup tu má vlastný bit v `$79`), a navyše:
 | `$33` | 0 | menič vretena cez RS485: 0 žiaden, 1 Delta |
 | `$34` `$35` `$36` | 1, 9600, 1 | menič: adresa Modbus, rýchlosť, rámec (0 8N1, 1 8N2, 2 8E1, 3 8O1, 4 8E2, 5 8O2) |
 | `$37` | 400 | frekvencia meniča pri S = `$30` (Hz) |
-| `$38` | 0 | PWM na OUT13 (D6): 0 vyp., 1 zap., 2 obrátené |
+| `$38` | 0 | PWM na OUT7 (D6): 0 vyp., 1 zap., 2 obrátené |
 | `$39` | 1 | tlačidlá panela obsluhy START/HOLD/STOP (A4–A6) sa používajú |
 | `$40` | 0 | kinematika: 0 karteziánska, 1 CoreXY |
 | `$41` | 0 | limity CoreXY: 0 na motor, 1 na os hlavy |
@@ -976,7 +978,12 @@ obnovil predvolené hodnoty. Verzie 22 (`$94`, `$95`), 23 (`$96`–`$98`), 24
 (`$33`–`$37`) a 25 (`$38`, `$39`, `$44`, `$45`) len pridávajú nastavenia
 a záznam verzie 21–24 sa prevezme tak, ako je (nové nastavenia dostanú
 predvolené hodnoty; záznam so zapnutým laserovým režimom si ponechá PWM,
-`$38=1`). Staršie záznamy sa stále
+`$38=1`). Verzia 26 čísluje výstupy v poradí svoriek shieldu v4 — D6 bol
+OUT13 a je OUT7, D5, D4, D3, D2, D14, D15 boli OUT7–OUT12 a sú OUT8–OUT13 —
+a záznamu verzie 21–25 presunie každú funkciu v `$80`–`$92` aj každý bit `$93`
+spolu s nimi, takže každá zostane na svojom pine (predvolené hodnoty shieldu
+v4 sú tak AUX2/AUX3 na OUT8/OUT9, klieština na OUT10, resety na OUT11/OUT12,
+AUX4 na OUT13). Staršie záznamy sa stále
 nahradia predvolenými — pred aktualizáciou si ulož výpis `$$` a `$#`.
 
 Nové stavové kódy: `error:39` klieština otvorená, `40` STOP aktívne, `41`
@@ -1096,7 +1103,7 @@ src/
   config.h defaults.h    voľby pri kompilácii a profily strojov
   cpu_map.h              priradenie pinov
   kinematics.[ch]        karteziánska / CoreXY kinematika, režimy osi A
-  io.[ch]                kanály IN1-IN20 / OUT1-OUT12, priradenie funkcií, $TIN/$TSW
+  io.[ch]                kanály IN1-IN20 / OUT1-OUT14, priradenie funkcií, $TIN/$TSW
   outputs.[ch]           výstupné funkcie, M62-M65, $46, klieština, impulzy resetu
   estop.[ch]             centrálne STOP (EXTI4)
   display.[ch]           strana displeja na M7: snímka stavu, príkazy z dotyku, $SCREEN, $TOUCH, $SPLASH
@@ -1147,7 +1154,7 @@ tests/
   test_corexy.py         CoreXY: impulzy remeňových motorov, uzavretie dráhy, posuv, $41, vylúčenia
   test_touch.py          každé dotykové tlačidlo a editor $$ cez $TOUCH, snímky obrazovky (--shots)
   test_mpg.py            koliesko: kroky, OFF/blokované, sledovanie kolieska, zahodený nadbytok, zmena osi, softvérové limity
-  test_panel.py          OUT13/OUT14, PWM na OUT13 ($38), tlačidlá a potenciometre panela
+  test_panel.py          OUT7 (D6) / OUT14 (A2), PWM na OUT7 ($38), tlačidlá a potenciometre panela
   test_vfd.py            menič cez RS485: M3/M4/M5/S, otáčky, porucha, nemý / odmietajúci / klávesnicový menič,
                          STOP na jeho klávesnici, pokračovanie po hold, $VFD; simulovaný ($TVFD) alebo PC ako
                          menič na prevodníku USB-RS485 (--rs485)
@@ -1300,15 +1307,15 @@ stroja, nie riadiacej jednotky.
   0; pohyb Z nepridá žiaden.
 * `M3` → OUT1 FWD + OUT5 (AUX0 ide s vretenom), `M4` → OUT2 REV s FWD
   vypnutým, `M5` všetko vypnuté; `M7`/`M8` → OUT4/OUT3; `M64 P1`, `M64 P3` →
-  OUT6, OUT8; `M65 P1` + `M62 P2` po pohybe → OUT7 + OUT8; `M64 P4` → OUT12;
-  `M64 P5` zapne AUX5 bez priradeného kanála; `M64 P6` odmietnuté; `$93=4095`
-  invertuje piny bez zmeny logického stavu; `$84=11` odmietnuté (`error:42`,
-  OUT11 je reset meniča), kým `$92=0`, potom AUX0 beží na OUT11; `M2` vypne
+  OUT6, OUT9; `M65 P1` + `M62 P2` po pohybe → OUT8 + OUT9; `M64 P4` → OUT13;
+  `M64 P5` zapne AUX5 bez priradeného kanála; `M64 P6` odmietnuté; `$93=16383`
+  invertuje piny bez zmeny logického stavu; `$84=12` odmietnuté (`error:42`,
+  OUT12 je reset meniča), kým `$92=0`, potom AUX0 beží na OUT12; `M2` vypne
   všetko.
 * `S12000` s `$30=24000`: PWM spätne prečítané z TIM4 50,0 %, DAC 2047;
   `S6000`: 25,0 %, 1023; `M5`: 0, 0.
 * IN9 (alarm serva X) aktivovaný cez `$TIN=9,1`: **ALARM:17** hneď, `Pn:M`
-  v stave; reset po ňom dá impulz `$55` na OUT10 (reset serv), po `$55`
+  v stave; reset po ňom dá impulz `$55` na OUT11 (reset serv), po `$55`
   zmizne; uvoľnené a `$X`: Idle.
 
 **I/O kanály, koncáky, STOP, vreteno, brzda** (`test_io.py`), všetko
@@ -1365,9 +1372,9 @@ prechádza:
   250 ms (0,250 s); relé stratené počas rezania s `$53=1` → `Hold:0`, START
   po jeho návrate → Run; `$53=2` → alarm po riadenom zastavení; porucha
   meniča → `ALARM:19`, FWD/REV vypnuté, `$X` odmietnuté (`error:43`)
-  s impulzom resetu meniča na OUT11, porucha preč → `$X` ok.
+  s impulzom resetu meniča na OUT12, porucha preč → `$X` ok.
 * Klieština, `$51=300`: otvorenie odmietnuté, kým vreteno beží a hneď po
-  `M5`, prijaté po dobehu (OUT9); `M3` pri otvorenej → `error:39`; otvorenie
+  `M5`, prijaté po dobehu (OUT10); `M3` pri otvorenej → `error:39`; otvorenie
   počas pohybu → `error:44`. `T3 M6`: `[MSG:Tool change T3, cycle start to
   resume]`, `Hold:0`, START pokračuje, vreteno zostane vypnuté.
 * Brzda, `$48/$49/$50` = 200/100/200, `$1=25`: drivery zapnuté v 1 ms, brzda
@@ -1457,14 +1464,14 @@ porte RS485, 9600 8N2; `01-00` = 60 Hz, takže test beží s `$37=60`; rampy
 * Riadok vretena na stránke DRO pri rozbehu meniča:
   `8879 / 12000 CW  S12000`, na otáčkach `12000 / 12000 CW  S12000`.
 
-**Shield v4: OUT13/OUT14, PWM na OUT13, panel obsluhy** (`test_panel.py`,
+**Shield v4: OUT7 (D6) / OUT14 (A2), PWM na OUT7, panel obsluhy** (`test_panel.py`,
 panel cez `$TPNL` / `$TPOT`), všetko prechádza:
 
-* AUX4 na OUT13: `M64 P4` → OUT13 zap., D6 v jednotke, `M65 P4` vyp.; AUX5
-  na OUT14 rovnako; `$88=15` a bit 14 v `$93` → `error:3`; `$93=4096`
+* AUX4 na OUT7: `M64 P4` → OUT7 zap., D6 v jednotke, `M65 P4` vyp.; AUX5
+  na OUT14 rovnako; `$88=15` a bit 14 v `$93` → `error:3`; `$93=64`
   invertuje D6.
-* `$38=1` odmietnuté, kým je na OUT13 funkcia (`error:42`), aj funkcia na
-  OUT13, kým je PWM; `M3 S500` → PWM 500 ‰, DAC 2047; D6 v nule pri S0
+* `$38=1` odmietnuté, kým je na OUT7 funkcia (`error:42`), aj funkcia na
+  OUT7, kým je PWM; `M3 S500` → PWM 500 ‰, DAC 2047; D6 v nule pri S0
   a v jednotke pri plnej strede, `$38=2` naopak; `$38=0` → PWM vypnuté, DAC
   ďalej 2047; laserový režim bez PWM odmietnutý (`error:17`), rovnako
   `$38=0` v laserovom režime.
@@ -1529,7 +1536,7 @@ a `$42=2` s CoreXY sa obe odmietnu s `error:5`.
   vreteno znova beží, stále pozdržané; `~` dokončí pohyb.
 * AUX1 krátko ťuknuté: vypnuté; podržané: OUT6 zapnutý; podržané znova:
   vypnutý.
-* COLLET krátko ťuknuté: zostane zatvorená; podržané: OUT9 zapnutý, `M3`
+* COLLET krátko ťuknuté: zostane zatvorená; podržané: OUT10 zapnutý, `M3`
   odmietnuté; ťuknuté: zatvorená. V pauze `T5 M6` (stlačenia zaradené
   vopred, lebo Grbl vtedy nečíta riadky): podržaný COLLET ju otvorí, START sa
   odmietne, kým je otvorená, ťuknutie ju zatvorí, START pokračuje.

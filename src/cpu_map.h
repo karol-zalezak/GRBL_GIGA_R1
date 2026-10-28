@@ -31,10 +31,10 @@
       D51  IN20 (A servo alarm)                D50  IN15  (start button)
       D53  DRV PWR (fixed)                     D52  IN16  (free)
 
-      top header, left to right
+      top header, left to right (shield v4: J19 OUT1-OUT7, J20 OUT8-OUT14)
       D13 OUT1  D12 OUT2  D11 OUT3  D10 OUT4  D9 OUT5  D8 OUT6
-      D7 spare (input only)  D6 OUT13 / spindle PWM ($38)
-      D5 OUT7  D4 OUT8  D3 OUT9  D2 OUT10   D14 OUT11  D15 OUT12  D16 BRAKE (fixed)
+      D7 spare (input only)  D6 OUT7 / spindle PWM ($38)
+      D5 OUT8  D4 OUT9  D3 OUT10  D2 OUT11   D14 OUT12  D15 OUT13  D16 BRAKE (fixed)
 
       analog header
       A0, A1  operator panel potentiometers ($44, $45)
@@ -48,7 +48,7 @@
   IN1-IN20 and OUT1-OUT14 are universal channels: what each one does is a
   setting ($60-$93, see io.h); the functions in brackets are the defaults.
   Fixed are only the step/direction/enable signals, STOP, BRAKE, the DAC and
-  the operator panel; OUT13 carries the spindle PWM instead when $38 > 0.
+  the operator panel; OUT7 carries the spindle PWM instead when $38 > 0.
 
   The four step pins share GPIO port J (PJ0/2/4/6), so a step is a single
   32-bit store; three of the four direction pins are on port J too.
@@ -84,10 +84,12 @@
   #define IN_CHANNEL_PINS  { 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, \
                              42, 44, 46, 48, 50, 52, 43, 45, 47, 51 }
 
-  // Universal output channels OUT1-OUT14, in channel order. OUT13 (D6) is the
-  // spindle PWM pin as well (TIM4_CH2, $38); OUT14 is A2 (PB0).
-  #define OUT_CHANNEL_PINS { 13, 12, 11, 10, 9, 8, 5, 4, 3, 2, 14, 15, 6, 78 }
-  #define OUT_PWM_CHANNEL  13
+  // Universal output channels OUT1-OUT14, in channel order - that of shield
+  // v4's terminals (settings version 26; before, D6 was OUT13 and D5-D15
+  // OUT7-OUT12). OUT7 (D6) is the spindle PWM pin as well (TIM4_CH2, $38);
+  // OUT14 is A2 (PB0).
+  #define OUT_CHANNEL_PINS { 13, 12, 11, 10, 9, 8, 6, 5, 4, 3, 2, 14, 15, 78 }
+  #define OUT_PWM_CHANNEL  7
 
   // Central STOP: signal from the safety relay. Fixed pin with its own EXTI
   // line (PE4 -> EXTI4, a dedicated interrupt vector nothing else uses).
@@ -118,7 +120,7 @@
   #define PANEL_HOLD_PIN        81    // A5, PC2
   #define PANEL_STOP_PIN        82    // A6, PC0
 
-  // Spindle speed: PWM carrier on D6 (= OUT13, only with $38 > 0) and an
+  // Spindle speed: PWM carrier on D6 (= OUT7, only with $38 > 0) and an
   // analog level on DAC0 (A12).
   #define SPINDLE_PWM_PIN       6
   #define SPINDLE_DAC_PIN       84    // A12 / DAC0, PA4. Comment out to leave the DAC alone.

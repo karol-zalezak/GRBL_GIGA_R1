@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shield v4 additions: OUT13/OUT14, the PWM on OUT13 ($38) and the operator
+"""Shield v4 additions: OUT7 (D6) and OUT14 (A2), the PWM on OUT7 ($38) and the operator
 panel (src/panel.h) - for Grbl-Giga on the Arduino GIGA R1.
 
 No panel needed: the test hooks take the same path as the panel's pins.
@@ -13,9 +13,9 @@ No panel needed: the test hooks take the same path as the panel's pins.
 and $I reports pnl=<buttons>/<pot A0>/<pot A1>, pwm=<duty 0.1 %, 65535 off>,
 dac=<0-4095>, d6=<level of D6>, out=<channels>/<functions>.
 
-  outputs   OUT13 (D6) and OUT14 (A2) as outputs (AUX4/AUX5, M64/M65), $93 range
-  pwm       $38 0/1/2: PWM or plain OUT13, the polarity, the DAC either way,
-            OUT13 reserved while PWM, laser mode needs PWM
+  outputs   OUT7 (D6) and OUT14 (A2) as outputs (AUX4/AUX5, M64/M65), $93 range
+  pwm       $38 0/1/2: PWM or plain OUT7, the polarity, the DAC either way,
+            OUT7 reserved while PWM, laser mode needs PWM
   buttons   START / HOLD like the inputs, STOP: controlled stop (position
             kept, no alarm, spindle off), standing STOP, $39=0
   pots      $44/$45: feed / spindle / rapid override from the reading, the
@@ -99,17 +99,17 @@ def lines_since(g, n0):
 # ---------------------------------------------------------------------------
 
 def t_outputs(g):
-    say("\nOUT13 / OUT14:")
+    say("\nOUT7 (D6) / OUT14 (A2):")
     ok = True
     g.ok("$38=0")
-    g.ok("$88=13")                 # AUX4 on OUT13
+    g.ok("$88=7")                  # AUX4 on OUT7, the free D6 (shield v4 has it on OUT13)
     g.ok("$89=14")                 # AUX5 on OUT14
     g.ok("M64 P4")
     d = diag(g)
-    ok &= check(d["out"][0] & (1 << 12) and d["d6"] == 1, "M64 P4 (AUX4 = OUT13): out=%s d6=%d" % (d["out"], d["d6"]))
+    ok &= check(d["out"][0] & (1 << 6) and d["d6"] == 1, "M64 P4 (AUX4 = OUT7): out=%s d6=%d" % (d["out"], d["d6"]))
     g.ok("M65 P4")
     d = diag(g)
-    ok &= check(not d["out"][0] & (1 << 12) and d["d6"] == 0, "M65 P4: OUT13 off, d6=%d" % d["d6"])
+    ok &= check(not d["out"][0] & (1 << 6) and d["d6"] == 0, "M65 P4: OUT7 off, d6=%d" % d["d6"])
     g.ok("M64 P5")
     d = diag(g)
     ok &= check(d["out"][0] & (1 << 13), "M64 P5 (AUX5 = OUT14): out=%s" % (d["out"],))
@@ -120,24 +120,25 @@ def t_outputs(g):
     ok &= check(r[-1] == b"error:3", "$88=15 (no OUT15): %s" % r[-1].decode())
     r = g.cmd("$93=16384")
     ok &= check(r[-1] == b"error:3", "$93 bit 14 (no OUT15): %s" % r[-1].decode())
-    g.ok("$93=4096")               # OUT13 inverted
+    g.ok("$93=64")                 # OUT7 inverted
     d = diag(g)
-    ok &= check(d["d6"] == 1 and not d["out"][0] & (1 << 12), "$93=4096: OUT13 off but inverted at the pin, d6=%d" % d["d6"])
+    ok &= check(d["d6"] == 1 and not d["out"][0] & (1 << 6), "$93=64: OUT7 off but inverted at the pin, d6=%d" % d["d6"])
     g.ok("$93=0")
+    g.ok("$88=13")
     return ok
 
 
 def t_pwm(g):
-    say("\nPWM on OUT13 ($38):")
+    say("\nPWM on OUT7 ($38):")
     ok = True
     g.ok("$38=0")
-    g.ok("$88=13")
+    g.ok("$88=7")
     r = g.cmd("$38=1")
-    ok &= check(r[-1] == b"error:42", "$38=1 with AUX4 on OUT13: %s" % r[-1].decode())
-    g.ok("$88=12")
+    ok &= check(r[-1] == b"error:42", "$38=1 with AUX4 on OUT7: %s" % r[-1].decode())
+    g.ok("$88=13")
     g.ok("$38=1")
-    r = g.cmd("$88=13")
-    ok &= check(r[-1] == b"error:42", "AUX4 onto OUT13 while it is the PWM: %s" % r[-1].decode())
+    r = g.cmd("$88=7")
+    ok &= check(r[-1] == b"error:42", "AUX4 onto OUT7 while it is the PWM: %s" % r[-1].decode())
     g.ok("$30=1000")
     g.ok("$31=0")
     g.ok("M3 S500")

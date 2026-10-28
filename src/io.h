@@ -26,13 +26,13 @@
 
       $80-$81  spindle FWD, spindle REV                     OUT1-OUT2
       $82-$83  flood (M8), mist (M7)                        OUT3-OUT4
-      $84-$89  AUX0-AUX5 (M62-M65 P0-P5)                    OUT5-OUT8, OUT12, OUT14
-      $90      collet open                                  OUT9
-      $91      servo alarm reset (pulse)                    OUT10
-      $92      VFD fault reset (pulse)                      OUT11
+      $84-$89  AUX0-AUX5 (M62-M65 P0-P5)                    OUT5, OUT6, OUT8, OUT9, OUT13, OUT14
+      $90      collet open                                  OUT10
+      $91      servo alarm reset (pulse)                    OUT11
+      $92      VFD fault reset (pulse)                      OUT12
       $93      inverted outputs: bit n-1 = OUTn
 
-  OUT13 (D6) is also the spindle PWM pin: with $38 > 0 the timer owns it, the
+  OUT7 (D6) is also the spindle PWM pin: with $38 > 0 the timer owns it, the
   channel is reserved and no output function may use it.
 
   An input channel is "on" when its optocoupler conducts, which pulls the pin
@@ -124,7 +124,7 @@ uint16_t io_out_state();
 // Channel (1-14) of output function f, 0 if unused.
 uint8_t io_out_channel(uint8_t fn);
 
-// A channel whose pin another module drives (OUT13 as the spindle PWM): io.c
+// A channel whose pin another module drives (OUT7 as the spindle PWM): io.c
 // leaves the pin alone and refuses to give the channel a function. Freeing
 // it puts the channel's own level on the pin again.
 void io_out_reserve(uint8_t channel, uint8_t reserved);

@@ -586,7 +586,7 @@ void report_build_info(char *line)
   print_uint32_base10(hal_spindle_pwm_readback());
   printPgmString(PSTR(" dac="));
   print_uint32_base10(hal_spindle_dac_readback());
-  // The level of D6 (OUT13 or the PWM) as the pin reads back.
+  // The level of D6 (OUT7 or the PWM) as the pin reads back.
   printPgmString(PSTR(" d6="));
   print_uint8_base10(hal_pin_read(SPINDLE_PWM_PIN) ? 1 : 0);
   printPgmString(PSTR(" tim="));

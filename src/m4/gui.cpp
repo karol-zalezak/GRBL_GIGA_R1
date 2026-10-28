@@ -474,8 +474,8 @@ static const set_meta_t set_meta[] = {
     "Character frame of the RS485 line, RTU. Delta: 09-04 = 12 + this value (13 = 8N2).", "8N1|8N2|8E1|8O1|8E2|8O2" },
   { 37, T_FLOAT, "VFD frequency at $30", "Hz the drive runs at S=$30",
     "The frequency sent to the drive for S = $30 (max spindle speed); lower S scale down linearly. A two-pole 24000 rpm spindle: 400 Hz.", 0 },
-  { 38, T_ENUM, "Spindle PWM on OUT13", "D6: output or PWM",
-    "Off: OUT13 (D6) is an output like the others. On: D6 carries the spindle / laser PWM (1 kHz). Inverted: for a TTL PWM input behind OUT13, which sinks to 0 V. Laser mode needs it.", "off|on|inverted" },
+  { 38, T_ENUM, "Spindle PWM on OUT7", "D6: output or PWM",
+    "Off: OUT7 (D6) is an output like the others. On: D6 carries the spindle / laser PWM (1 kHz). Inverted: for a TTL PWM input behind OUT7, which sinks to 0 V. Laser mode needs it.", "off|on|inverted" },
   { 39, T_BOOL, "Panel buttons", "START HOLD STOP on A4-A6",
     "The operator panel's buttons: START and HOLD as the inputs, STOP ends the program with a controlled stop - position kept, spindle off. Not the safety STOP on D49.", 0 },
   { 44, T_ENUM, "Panel pot A0", "override it sets",
@@ -1889,13 +1889,14 @@ static void in_label(int ch, char *out, uint16_t *color)
   }
 }
 
-// What output channel ch (1-14) carries. OUT13 is the spindle PWM with $38 > 0.
+// What output channel ch (1-14) carries. OUT7 (D6) is the spindle PWM with $38 > 0.
+#define OUT_PWM_CH 7
 static void out_label(int ch, char *out)
 {
   static const char *const names[GSHM_N_OUT_FN] = {
     "FWD", "REV", "FLD", "MIST", "AUX0", "AUX1", "AUX2", "AUX3", "AUX4", "AUX5", "COLL", "SRST", "VRST" };
   out[0] = 0;
-  if ((ch == 13) && set_byte(38)) { strcpy(out, "PWM"); return; }
+  if ((ch == OUT_PWM_CH) && set_byte(38)) { strcpy(out, "PWM"); return; }
   for (int f = 0; f < GSHM_N_OUT_FN; f++) {
     if (set_byte(80 + f) == ch) { strcpy(out, names[f]); return; }
   }

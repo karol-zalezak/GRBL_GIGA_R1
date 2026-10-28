@@ -60,7 +60,7 @@ static void spindle_at_speed_restart(uint8_t was_running);
 void spindle_init()
 {
   #ifdef VARIABLE_SPINDLE
-    // $38: the PWM on OUT13 (D6), or OUT13 a plain output. The duty value is
+    // $38: the PWM on OUT7 (D6), or OUT7 a plain output. The duty value is
     // worked out either way - the DAC's 0-10 V follows it.
     uint8_t pwm = (settings.spindle_pwm <= HAL_PWM_INVERTED) ? settings.spindle_pwm : HAL_PWM_OFF;
     if (pwm) { io_out_reserve(OUT_PWM_CHANNEL, true); }

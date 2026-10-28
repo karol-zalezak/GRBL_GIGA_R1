@@ -247,7 +247,7 @@ uint8_t io_check_out_assignment(uint8_t fn, uint8_t channel)
   uint8_t f;
   if (channel > N_OUT_CHANNELS) { return(STATUS_INVALID_STATEMENT); }
   if (channel == 0) { return(STATUS_OK); }
-  if (io_out_reserved(channel)) { return(STATUS_CHANNEL_IN_USE); }   // OUT13 as PWM ($38)
+  if (io_out_reserved(channel)) { return(STATUS_CHANNEL_IN_USE); }   // OUT7 as PWM ($38)
   for (f = 0; f < N_OUT_FUNCS; f++) {
     if ((f != fn) && (settings.out_func[f] == channel)) { return(STATUS_CHANNEL_IN_USE); }
   }

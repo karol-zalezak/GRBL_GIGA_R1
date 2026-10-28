@@ -33,11 +33,14 @@
 // the driver power input ($94, $95) and takes a version 21 image over (see
 // read_global_settings()); 23 appends the handwheel ($96-$98) and takes
 // version 21 and 22 images over; 24 appends the spindle VFD over RS485
-// ($33-$37) and takes versions 21-23 over; 25 appends the PWM on OUT13 ($38)
-// and the operator panel ($39, $44, $45) and takes versions 21-24 over.
+// ($33-$37) and takes versions 21-23 over; 25 appends the PWM on D6 ($38)
+// and the operator panel ($39, $44, $45) and takes versions 21-24 over; 26
+// renumbers OUT7-OUT13 to shield v4's terminal order (D6 OUT13 -> OUT7, D5-D15
+// OUT7-OUT12 -> OUT8-OUT13) and takes versions 21-25 over with every output
+// function and inversion kept on its pin.
 // Bumped from upstream Grbl's 10 so a mismatched image is rejected and
 // defaults are written instead - back up $$ and $#.
-#define SETTINGS_VERSION 25  // NOTE: Check settings_reset() when moving to next version.
+#define SETTINGS_VERSION 26  // NOTE: Check settings_reset() when moving to next version.
 
 // Define bit flag masks for the boolean settings in settings.flag.
 #define BIT_REPORT_INCHES      0
@@ -159,7 +162,7 @@ typedef struct {
   uint32_t vfd_baud;             // $35: baud rate
   float vfd_max_hz;              // $37: drive frequency at $30, Hz
   // Version 25.
-  uint8_t spindle_pwm;           // $38: PWM on OUT13 (D6): 0 off, 1 on, 2 inverted
+  uint8_t spindle_pwm;           // $38: PWM on OUT7 (D6): 0 off, 1 on, 2 inverted
   uint8_t panel_buttons;         // $39: operator panel START/HOLD/STOP in use
   uint8_t pot_func[2];           // $44, $45: panel potentiometers A0, A1 (panel.h)
 } settings_t;

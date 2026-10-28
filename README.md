@@ -163,13 +163,13 @@ Top header and analog:
 
 | Pin | Function | | Pin | Function |
 |---|---|---|---|---|
-| D13 | **OUT1** (spindle FWD) | | D5 | **OUT7** (AUX2) |
-| D12 | **OUT2** (spindle REV) | | D4 | **OUT8** (AUX3) |
-| D11 | **OUT3** (flood) | | D3 | **OUT9** (collet) |
-| D10 | **OUT4** (mist) | | D2 | **OUT10** (servo reset) |
-| D9 | **OUT5** (AUX0, dust extraction) | | D14 | **OUT11** (VFD reset) |
-| D8 | **OUT6** (AUX1) | | D15 | **OUT12** (AUX4) |
-| D6 | **OUT13** — or the spindle PWM (TIM4_CH2, 1 kHz, 60000 steps) with `$38` | | D16 | **BRAKE** — Z brake (fixed) |
+| D13 | **OUT1** (spindle FWD, `M3`) | | D5 | **OUT8** (AUX2) |
+| D12 | **OUT2** (spindle REV, `M4`) | | D4 | **OUT9** (AUX3) |
+| D11 | **OUT3** (flood, `M8`) | | D3 | **OUT10** (collet) |
+| D10 | **OUT4** (mist, `M7`) | | D2 | **OUT11** (servo alarm reset) |
+| D9 | **OUT5** (AUX0, dust extraction) | | D14 | **OUT12** (VFD fault reset) |
+| D8 | **OUT6** (AUX1) | | D15 | **OUT13** (AUX4) |
+| D6 | **OUT7** — or the spindle PWM (TIM4_CH2, 1 kHz, 60000 steps) with `$38` | | D16 | **BRAKE** — Z brake (fixed) |
 | A2 | **OUT14** (AUX5) | | D7 | spare (input only: JTAG pull-up) |
 | A12 (DAC0) | spindle speed 0–3.3 V (0–10 V after the shield) | | A0, A1 / A4–A6 | operator panel: potentiometers / START, HOLD, STOP |
 
@@ -270,7 +270,9 @@ OUT1–OUT14**. None of them has a fixed job: each function is a setting holding
 the number of the channel it is on (0 = not used), so the wiring is changed in
 `$$`, not in the source. Fixed are only step/direction/enable, the central
 STOP (D49), the driver power input (D53), the Z brake (D16), the DAC (A12)
-and the operator panel; OUT13 (D6) is the spindle PWM instead with `$38` > 0.
+and the operator panel; OUT7 (D6) is the spindle PWM instead with `$38` > 0.
+The output numbers follow shield v4's terminals: J19 = OUT1–OUT7, J20 =
+OUT8–OUT14 (since settings version 26; see below).
 The defaults are those of shield v4, whose servo alarms come in on IN17–IN20
 next to their DE-15 connectors; they apply to new settings (`$RST=$`) — an
 update keeps the assignment a board already has.
@@ -289,10 +291,10 @@ update keeps the assignment a board already has.
 |---|---|---|
 | `$80`, `$81` | spindle **FWD** (`M3`), **REV** (`M4`) — never both | OUT1, OUT2 |
 | `$82`, `$83` | flood `M8`, mist `M7` | OUT3, OUT4 |
-| `$84`–`$89` | AUX0–AUX5 (`M62`–`M65 P0`–`P5`) | OUT5–OUT8, OUT12, OUT14 |
-| `$90` | collet open | OUT9 |
-| `$91` | servo alarm reset (pulse) | OUT10 |
-| `$92` | VFD fault reset (pulse) | OUT11 |
+| `$84`–`$89` | AUX0–AUX5 (`M62`–`M65 P0`–`P5`) | OUT5, OUT6, OUT8, OUT9, OUT13, OUT14 |
+| `$90` | collet open | OUT10 |
+| `$91` | servo alarm reset (pulse) | OUT11 |
+| `$92` | VFD fault reset (pulse) | OUT12 |
 | `$93` | **inverted outputs**: bit n−1 = OUTn | 0 |
 
 An input is **active when its optocoupler conducts** (it pulls the pin, which
@@ -331,9 +333,9 @@ inputs are debounced for 2 ms, limits for 0.3 ms, buttons for 10 ms.
 AUX outputs that also switch on whenever the spindle runs (default AUX0, the
 dust extraction). `$93` inverts outputs at the pin; the display and the
 M-codes keep showing the logical state. Changing an assignment switches the
-function off first. OUT13 (D6) and OUT14 (A2) are outputs like the others —
-OUT13 only while `$38=0`: with the PWM on, the timer owns D6 and no function
-may be put on OUT13 (`error:42`; `$38` > 0 is refused while one is).
+function off first. OUT7 (D6) and OUT14 (A2) are outputs like the others —
+OUT7 only while `$38=0`: with the PWM on, the timer owns D6 and no function
+may be put on OUT7 (`error:42`; `$38` > 0 is refused while one is).
 
 ### Central STOP (`$57`, D49)
 
@@ -671,9 +673,9 @@ For tests without a machine (all used by `tests/test_io.py`):
 None of them survives a power cycle; all survive a reset on purpose.
 
 The spindle **speed** is an analog level on A12 — 0 V at S0 and 3.3 V at
-`$30` — and, with **`$38`** > 0, also a PWM carrier on D6 (= OUT13, TIM4_CH2,
-1 kHz). `$38`: **0** off (default; D6 is OUT13), **1** PWM, **2** PWM
-inverted at the pin — for a TTL PWM input behind OUT13, which sinks to 0 V
+`$30` — and, with **`$38`** > 0, also a PWM carrier on D6 (= OUT7, TIM4_CH2,
+1 kHz). `$38`: **0** off (default; D6 is OUT7), **1** PWM, **2** PWM
+inverted at the pin — for a TTL PWM input behind OUT7, which sinks to 0 V
 when the pin is high, so that input sees the right duty (beware: with the
 GIGA not yet driving the pin, during boot, such an input sees full power;
 give the laser its own enable). Laser mode (`$32=1`) needs the PWM
@@ -951,7 +953,7 @@ inversion — every input has its own bit in `$79` here), plus:
 | `$33` | 0 | spindle VFD over RS485: 0 none, 1 Delta |
 | `$34` `$35` `$36` | 1, 9600, 1 | VFD Modbus address, baud rate, frame (0 8N1, 1 8N2, 2 8E1, 3 8O1, 4 8E2, 5 8O2) |
 | `$37` | 400 | VFD frequency at S = `$30` (Hz) |
-| `$38` | 0 | PWM on OUT13 (D6): 0 off, 1 on, 2 inverted |
+| `$38` | 0 | PWM on OUT7 (D6): 0 off, 1 on, 2 inverted |
 | `$39` | 1 | operator panel buttons START/HOLD/STOP (A4–A6) in use |
 | `$40` | 0 | kinematics: 0 Cartesian, 1 CoreXY |
 | `$41` | 0 | CoreXY limits: 0 per motor, 1 per head axis |
@@ -984,8 +986,14 @@ The settings version changed with the I/O channels (21): the first start of
 that firmware restored the defaults. Versions 22 (`$94`, `$95`), 23
 (`$96`–`$98`), 24 (`$33`–`$37`) and 25 (`$38`, `$39`, `$44`, `$45`) only append
 settings, and a version 21–24 record is taken over as it is (the new ones get
-their defaults; a record with laser mode on keeps the PWM, `$38=1`). Older records are still
-replaced by the defaults — note `$$` and `$#` before updating.
+their defaults; a record with laser mode on keeps the PWM, `$38=1`). Version
+26 numbers the outputs in shield v4's terminal order — D6 was OUT13 and is
+OUT7, D5, D4, D3, D2, D14, D15 were OUT7–OUT12 and are OUT8–OUT13 — and moves
+every function in `$80`–`$92` and every bit of `$93` of a version 21–25 record
+along, so each stays on its pin (the shield v4 defaults thus become AUX2/AUX3
+on OUT8/OUT9, the collet on OUT10, the resets on OUT11/OUT12, AUX4 on OUT13).
+Older records are still replaced by the defaults — note `$$` and `$#` before
+updating.
 
 New status codes: `error:39` collet open, `40` STOP active, `41` limit switch
 held in that direction, `42` channel already used, `43` VFD fault active,
@@ -1099,7 +1107,7 @@ src/
   config.h defaults.h    build options and machine profiles
   cpu_map.h              pin assignment
   kinematics.[ch]        Cartesian / CoreXY, A axis modes
-  io.[ch]                IN1-IN20 / OUT1-OUT12 channels, function assignment, $TIN/$TSW
+  io.[ch]                IN1-IN20 / OUT1-OUT14 channels, function assignment, $TIN/$TSW
   outputs.[ch]           output functions, M62-M65, $46, collet, reset pulses
   estop.[ch]             central STOP (EXTI4)
   display.[ch]           the M7 side of the display: status snapshot, touch commands, $SCREEN, $TOUCH, $SPLASH
@@ -1150,7 +1158,7 @@ tests/
   test_corexy.py         CoreXY: belt motor pulses, closure, feed rate, $41, exclusions
   test_touch.py          every touch button and the $$ editor via $TOUCH, screenshots (--shots)
   test_mpg.py            handwheel: steps, OFF/blocked, following the wheel, dropped excess, axis change, soft limits
-  test_panel.py          OUT13/OUT14, the PWM on OUT13 ($38), panel buttons and potentiometers
+  test_panel.py          OUT7 (D6) / OUT14 (A2), the PWM on OUT7 ($38), panel buttons and potentiometers
   test_vfd.py            spindle VFD over RS485: M3/M4/M5/S, at speed, fault, silent / refusing / keypad drive,
                          its keypad STOP, the resume of a hold, $VFD; simulated ($TVFD) or the PC as the drive
                          on a USB-RS485 adapter (--rs485)
@@ -1300,15 +1308,15 @@ acceleration limits, not the controller.
   0; a Z move adds none.
 * `M3` → OUT1 FWD + OUT5 (AUX0 follows the spindle), `M4` → OUT2 REV with
   FWD off, `M5` all off; `M7`/`M8` → OUT4/OUT3; `M64 P1`, `M64 P3` → OUT6,
-  OUT8; `M65 P1` + `M62 P2` after a move → OUT7 + OUT8; `M64 P4` → OUT12;
+  OUT9; `M65 P1` + `M62 P2` after a move → OUT8 + OUT9; `M64 P4` → OUT13;
   `M64 P5` switches AUX5 on with no channel assigned; `M64 P6` refused;
-  `$93=4095` inverts the pins without changing the logical state; `$84=11`
-  refused (`error:42`, OUT11 is the VFD reset) until `$92=0`, then AUX0 runs
-  on OUT11; `M2` switches everything off.
+  `$93=16383` inverts the pins without changing the logical state; `$84=12`
+  refused (`error:42`, OUT12 is the VFD reset) until `$92=0`, then AUX0 runs
+  on OUT12; `M2` switches everything off.
 * `S12000` with `$30=24000`: PWM read back from TIM4 50.0 %, DAC 2047;
   `S6000`: 25.0 %, 1023; `M5`: 0, 0.
 * IN9 (servo alarm X) pulled active with `$TIN=9,1`: **ALARM:17** at once,
-  `Pn:M` in the status; the reset after it puts a `$55` pulse on OUT10 (servo
+  `Pn:M` in the status; the reset after it puts a `$55` pulse on OUT11 (servo
   reset), gone after `$55`; released and `$X`: Idle.
 
 **I/O channels, limits, STOP, spindle, brake** (`test_io.py`), all passing:
@@ -1363,9 +1371,9 @@ through TIM8), all passing:
   settle (0.250 s); relay lost while cutting with `$53=1` → `Hold:0`, START
   after it is back → Run; `$53=2` → alarm after a controlled stop; VFD fault →
   `ALARM:19`, FWD/REV off, `$X` refused (`error:43`) with the VFD reset pulse
-  on OUT11, fault gone → `$X` ok.
+  on OUT12, fault gone → `$X` ok.
 * Collet, `$51=300`: open refused while the spindle runs and right after
-  `M5`, accepted after the run-down (OUT9); `M3` while open → `error:39`; open
+  `M5`, accepted after the run-down (OUT10); `M3` while open → `error:39`; open
   while moving → `error:44`. `T3 M6`: `[MSG:Tool change T3, cycle start to
   resume]`, `Hold:0`, START resumes, the spindle stays off.
 * Brake, `$48/$49/$50` = 200/100/200, `$1=25`: drives enabled at 1 ms, brake
@@ -1456,13 +1464,13 @@ ramps 0.1 s), all passing:
 * The DRO page's spindle line with the drive spinning up:
   `8879 / 12000 CW  S12000`, at speed `12000 / 12000 CW  S12000`.
 
-**Shield v4: OUT13/OUT14, the PWM on OUT13, the operator panel**
+**Shield v4: OUT7 (D6) / OUT14 (A2), the PWM on OUT7, the operator panel**
 (`test_panel.py`, the panel through `$TPNL` / `$TPOT`), all passing:
 
-* AUX4 on OUT13: `M64 P4` → OUT13 on, D6 high, `M65 P4` off; AUX5 on OUT14
-  likewise; `$88=15` and bit 14 of `$93` → `error:3`; `$93=4096` inverts D6.
-* `$38=1` refused while a function is on OUT13 (`error:42`), and a function
-  onto OUT13 while it is the PWM; `M3 S500` → PWM 500 ‰, DAC 2047; D6 low at
+* AUX4 on OUT7: `M64 P4` → OUT7 on, D6 high, `M65 P4` off; AUX5 on OUT14
+  likewise; `$88=15` and bit 14 of `$93` → `error:3`; `$93=64` inverts D6.
+* `$38=1` refused while a function is on OUT7 (`error:42`), and a function
+  onto OUT7 while it is the PWM; `M3 S500` → PWM 500 ‰, DAC 2047; D6 low at
   S0 and high at full duty, `$38=2` the other way round; `$38=0` → PWM off,
   the DAC still at 2047; laser mode refused without the PWM (`error:17`), as
   is `$38=0` in laser mode.
@@ -1527,7 +1535,7 @@ moves produce Z and A pulses only. Timing, at `$110=6000` (100 mm/s) and
   `Hold:0`; STOP again and START tapped briefly: still off; START held 0.7 s:
   the spindle on again, still held; `~` finishes the move.
 * AUX1 tapped briefly: off; held: OUT6 on; held again: off.
-* COLLET tapped briefly: stays closed; held: OUT9 on, `M3` refused; tapped:
+* COLLET tapped briefly: stays closed; held: OUT10 on, `M3` refused; tapped:
   closed. In a `T5 M6` pause (presses queued before, since Grbl reads no line
   then): COLLET held opens it, START is refused while it is open, a tap
   closes it, START resumes.

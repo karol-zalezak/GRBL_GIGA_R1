@@ -475,15 +475,16 @@ def t_collet(g):
     say("\ncollet button (I/O page), also in an M6 pause:")
     ok = True
     g.ok("$51=0")
+    cl = 1 << ((int(g.settings().get(90, 0)) or 10) - 1)   # the collet output (shield v4: OUT10)
     touch(g, TAB["io"])
     touch(g, COLLET, ms=200)
-    ok &= check(not (diag(g)[5] & (1 << 8)), "COLLET tapped briefly while closed: stays closed")
+    ok &= check(not (diag(g)[5] & cl), "COLLET tapped briefly while closed: stays closed")
     touch(g, COLLET, ms=900)
-    ok &= check(diag(g)[5] & (1 << 8), "COLLET held: OUT9 on (%s)" % bin(diag(g)[5]))
+    ok &= check(diag(g)[5] & cl, "COLLET held: its output on (%s)" % bin(diag(g)[5]))
     r = g.cmd("M3 S100")
     ok &= check(r[-1] == b"error:39", "M3 while open: %s" % r[-1].decode())
     touch(g, COLLET, ms=150)
-    ok &= check(not (diag(g)[5] & (1 << 8)), "a tap closes it (%s)" % bin(diag(g)[5]))
+    ok &= check(not (diag(g)[5] & cl), "a tap closes it (%s)" % bin(diag(g)[5]))
     # Grbl parses no line during the pause, $TOUCH included: queue the presses first.
     g.ok("$TOUCH=469,327,900,800")      # hold COLLET 0.8 s from now: opens
     g.ok("$TOUCH=469,327,150,3000")     # tap it 3 s from now: closes
@@ -501,7 +502,7 @@ def t_collet(g):
     g.drain(0.3)
     s = g.query()
     ok &= check(s and s[1].startswith("Idle"), "collet closed, START resumes: %s" % (s[1] if s else None))
-    ok &= check(not (diag(g)[5] & (1 << 8)), "collet closed at the end")
+    ok &= check(not (diag(g)[5] & cl), "collet closed at the end")
     g.ok("$51=5000")
     touch(g, TAB["dro"])
     return ok
@@ -654,11 +655,12 @@ def t_settings(g):
     ok &= check(setting(g, 95) == 750, "$95 (last global setting): typed 750 -> %s" % setting(g, 95))
     g.ok("$95=%g" % p95)
 
+    p90 = setting(g, 90)            # the collet (shield v4: OUT10)
     open_setting(g, 90)
     type_keys(g, "4")
     touch(g, KEY["SAVE"], settle=0.4)
     r = setting(g, 90)
-    ok &= check(r == 9, "$90=4 (OUT4 is mist) refused, stays %s" % r)
+    ok &= check(r == p90, "$90=4 (OUT4 is mist) refused, stays %s" % r)
     touch(g, KEY["CANCEL"])
     bad = unsolicited(g)
     ok &= check(not bad, "no ok/error on USB: %s" % bad)
